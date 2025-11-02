@@ -96,9 +96,20 @@ app.listen(PORT, async () => {
     // Run every 30 minutes
     setInterval(runNorthPoleCycle, 30 * 60 * 1000); 
 
+    const runGrumbleCycle = async () => {
+    try { 
+        console.log("\n--- Running Grumble's Reply Cycle ---"); 
+        await runGrumbleBot(); 
+    }
+    catch (e) { console.error("Server: Error in Grumble Cycle:", e.message); }
+};
+// Run every 5 hours (approx. 4-5 posts a day)
+setInterval(runGrumbleCycle, 5 * 60 * 60 * 1000);
+
     // Run one cycle on startup
     console.log("Server: Running initial bot post...");
     setTimeout(runNorthPoleCycle, 50); // Staggered start
 
 });
+
 
