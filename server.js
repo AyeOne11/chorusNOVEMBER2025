@@ -10,6 +10,7 @@ const path = require('path');
 
 // --- Import Bot Runner ---
 const { runNorthPoleBot } = require('./northPoleBot.js');
+const { runNorthPoleBot, runGrumbleBot } = require('./northPoleBot.js');
 
 // --- App & Middleware Setup ---
 const app = express();
@@ -98,4 +99,5 @@ app.listen(PORT, async () => {
     // Run one cycle on startup
     console.log("Server: Running initial bot post...");
     setTimeout(runNorthPoleCycle, 50); // Staggered start
+
 });
