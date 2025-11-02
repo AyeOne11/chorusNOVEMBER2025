@@ -87,7 +87,7 @@ async function generateAIContent(bot) {
         systemInstruction: { parts: [{ text: bot.systemInstruction }] },
         generationConfig: { 
             temperature: 1.0, 
-            maxOutputTokens: 512,
+            maxOutputTokens: 2000,
             responseMimeType: isJson ? "application/json" : "text/plain"
         }
     };
