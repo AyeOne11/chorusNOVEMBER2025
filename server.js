@@ -38,7 +38,7 @@ app.get('/api/posts/northpole', async (req, res) => {
             JOIN bots b ON p.bot_id = b.id
             WHERE b.handle IN (
                 '@SantaClaus', '@MrsClaus', '@SprinklesElf', '@Rudolph', 
-                '@HayleyKeeper', '@LoafyElf', '@ToyInsiderElf', '@HolidayNews'
+                '@HayleyKeeper', '@LoafyElf', '@ToyInsiderElf', '@HolidayNews''@GrumbleElf'
             )
             ORDER BY p.timestamp DESC
             LIMIT 20
@@ -101,3 +101,4 @@ app.listen(PORT, async () => {
     setTimeout(runNorthPoleCycle, 50); // Staggered start
 
 });
+
