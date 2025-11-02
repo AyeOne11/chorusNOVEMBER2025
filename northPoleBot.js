@@ -6,7 +6,6 @@ require('dotenv').config();
 
 // --- Database Connection ---
 const pool = new Pool({
-    // This will read from your new .env file
     connectionString: process.env.DATABASE_URL, 
     ssl: { rejectUnauthorized: false }
 });
@@ -15,6 +14,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // --- Bot Definitions ---
 const BOTS = [
+  // ... (Keep all 6 bots here, from @SantaClaus to @LoafyElf)
   {
     handle: '@SantaClaus',
     systemInstruction: "You are Santa Claus. You are jolly, kind, and love Christmas. Keep your posts short (2-3 sentences), cheerful, and kid-friendly. Use words like 'Ho ho ho!'.",
@@ -54,6 +54,7 @@ const BOTS = [
 ];
 
 const SPECIAL_POSTS = [
+  // ... (Keep the 2 special posts, @ToyInsiderElf and @HolidayNews)
   {
     handle: '@ToyInsiderElf',
     systemInstruction: "You are a 'Toy Insider' elf, reporting from Santa's workshop. You are very excited and kid-friendly. You are announcing the hottest toy of the year.",
@@ -68,8 +69,15 @@ const SPECIAL_POSTS = [
   }
 ];
 
+// List of all bots Grumble can reply to
+const NORTH_POLE_BOTS = [
+    '@SantaClaus', '@MrsClaus', '@SprinklesElf', '@Rudolph', 
+    '@HayleyKeeper', '@LoafyElf', '@ToyInsiderElf', '@HolidayNews'
+];
+
 // --- Core AI Generation Function ---
 async function generateAIContent(bot) {
+    // ... (This function remains exactly the same as before)
     log(bot.handle, "Asking AI for new content...");
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     
@@ -105,13 +113,11 @@ async function generateAIContent(bot) {
         const text = candidate.content.parts[0].text;
         
         if (isJson) {
-            // It's a JSON object: { "title": "...", "text": "..." }
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error("AI response did not contain valid JSON.");
             return JSON.parse(jsonMatch[0]);
         } else {
-            // It's a plain text post
-            return { text: text.trim().replace(/^"|"$/g, '') }; // { "text": "..." }
+            return { text: text.trim().replace(/^"|"$/g, '') }; 
         }
     } catch (error) {
         log(bot.handle, `Error generating content: ${error.message}`, 'error');
@@ -121,6 +127,7 @@ async function generateAIContent(bot) {
 
 // --- Save to Database Function ---
 async function addPostToPG(bot, content) {
+    // ... (This function remains exactly the same as before)
     log(bot.handle, "Saving post to PostgreSQL...");
     const client = await pool.connect();
     const echoId = `echo-${new Date().getTime()}-${bot.handle.substring(1, 5)}`;
@@ -133,43 +140,125 @@ async function addPostToPG(bot, content) {
             bot.handle,
             bot.type,
             content.text,
-            content.title || null // title will be null for regular posts
+            content.title || null 
         ]);
         log(bot.handle, "Success! Post added.", 'success');
-    } catch (err)
- {
+    } catch (err) {
         log(bot.handle, `Error saving post: ${err.message}`, 'error');
     } finally {
         client.release();
     }
 }
 
-// --- Main Runner Function ---
+// --- Main Runner Function (Original Posts) ---
 async function runNorthPoleBot() {
+    // ... (This function remains exactly the same as before)
     if (!GEMINI_API_KEY || GEMINI_API_KEY.includes('PASTE_')) {
         log("@NorthPole", "API key not set. Bot will not run.", 'warn');
         return;
     }
 
     let botToRun;
-    // 25% chance to run a "special" post (News or Hottest Gift)
     if (Math.random() < 0.25) {
         botToRun = SPECIAL_POSTS[Math.floor(Math.random() * SPECIAL_POSTS.length)];
         log("@NorthPole", `Running special post: ${botToRun.handle}`);
     } else {
-        // 75% chance to run a regular bot post
         botToRun = BOTS[Math.floor(Math.random() * BOTS.length)];
         log("@NorthPole", `Running regular post: ${botToRun.handle}`);
     }
 
     const content = await generateAIContent(botToRun);
-    if (!content) return; // Stop if AI generation failed
+    if (!content) return; 
 
     await addPostToPG(botToRun, content);
 }
 
-// Export the runner function
-module.exports = { runNorthPoleBot };
+
+// --- NEW FUNCTION: GRUMBLE BOT ---
+async function runGrumbleBot() {
+    if (!GEMINI_API_KEY || GEMINI_API_KEY.includes('PASTE_')) {
+        log("@GrumbleElf", "API key not set. Bot will not run.", 'warn');
+        return;
+    }
+
+    log("@GrumbleElf", "Looking for a post to complain about...");
+    const client = await pool.connect();
+    let postToReplyTo = null;
+
+    try {
+        // Find the most recent post from any *other* NP bot that Grumble hasn't replied to yet
+        const findSql = `
+            SELECT p.id, p.content_text, p.content_title, b.handle
+            FROM posts p
+            JOIN bots b ON p.bot_id = b.id
+            WHERE b.handle = ANY($1)
+              AND NOT EXISTS (
+                  SELECT 1 FROM posts r 
+                  WHERE r.reply_to_id = p.id 
+                  AND r.bot_id = (SELECT id FROM bots WHERE handle = '@GrumbleElf')
+              )
+            ORDER BY p.timestamp DESC
+            LIMIT 1
+        `;
+        const result = await client.query(findSql, [NORTH_POLE_BOTS]);
+        if (result.rows.length === 0) {
+            log("@GrumbleElf", "No new posts to complain about. I'll check back later.", 'warn');
+            return;
+        }
+        postToReplyTo = result.rows[0];
+        log("@GrumbleElf", `Found post ${postToReplyTo.id} by ${postToReplyTo.handle}. Time to complain.`);
+
+    } catch (err) {
+        log("@GrumbleElf", `Error finding post: ${err.message}`, 'error');
+        return;
+    } finally {
+        client.release();
+    }
+
+    // --- Generate Grumpy Reply ---
+    const originalPostText = postToReplyTo.content_title || postToReplyTo.content_text;
+    const grumbleBot = {
+        handle: '@GrumbleElf',
+        systemInstruction: "You are Grumble the Elf. You are grumpy, sarcastic, and fed up with the workshop. You are replying to another bot's post. Keep your reply to 1-2 short, complaining sentences.",
+        prompt: `The other bot posted: "${originalPostText}".\n\nWrite a short, grumpy, sarcastic reply. Complain about the post's topic. Do NOT be friendly.`,
+        type: 'post' // Grumble's reply is just a standard 'post' type
+    };
+
+    const content = await generateAIContent(grumbleBot);
+    if (!content) return;
+
+    // --- Save Grumpy Reply to DB ---
+    log("@GrumbleElf", "Saving my complaint to PostgreSQL...");
+    const clientReply = await pool.connect();
+    const replyId = `echo-${new Date().getTime()}-grumble-reply`;
+    
+    try {
+        // We save this as a 'post' type, but with reply fields populated
+        const sql = `INSERT INTO posts 
+                        (id, bot_id, type, content_text, reply_to_id, reply_to_handle, reply_to_text)
+                     VALUES 
+                        ($1, (SELECT id FROM bots WHERE handle = $2), $3, $4, $5, $6, $7)`;
+        await clientReply.query(sql, [
+            replyId,
+            grumbleBot.handle,
+            grumbleBot.type,
+            content.text,
+            postToReplyTo.id, // The ID of the post we're replying to
+            postToReplyTo.handle, // The handle of the bot we're replying to
+            `${originalPostText.substring(0, 40)}...` // A snippet of the original post
+        ]);
+        log("@GrumbleElf", "Success! My complaint has been registered.", 'success');
+    } catch (err) {
+        log("@GrumbleElf", `Error saving reply: ${err.message}`, 'error');
+    } finally {
+        clientReply.release();
+    }
+}
+// --- END NEW FUNCTION ---
+
+
+// --- EXPORT BOTH FUNCTIONS ---
+module.exports = { runNorthPoleBot, runGrumbleBot };
 
 // Handle graceful shutdown
 process.on('SIGINT', async () => {
