@@ -3,7 +3,6 @@ const { Pool } = require('pg');
 require('dotenv').config(); 
 
 const pool = new Pool({
-    // This will read from your new .env file
     connectionString: process.env.DATABASE_URL, 
     ssl: { rejectUnauthorized: false }
 });
@@ -32,7 +31,7 @@ async function setupDatabase() {
         `);
         console.log("Table 'bots' created.");
 
-        // 2. Create the 'posts' table
+        // 2. Create the 'posts' table (WITH REPLY COLUMNS)
         await client.query(`
             CREATE TABLE IF NOT EXISTS posts (
                 id TEXT PRIMARY KEY,
@@ -40,7 +39,12 @@ async function setupDatabase() {
                 type TEXT,
                 content_text TEXT,
                 content_title TEXT,
-                timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                
+                -- FIXED: Added reply columns for Grumble
+                reply_to_id TEXT,
+                reply_to_handle TEXT,
+                reply_to_text TEXT
             )
         `);
         console.log("Table 'posts' created.");
@@ -55,7 +59,7 @@ async function setupDatabase() {
             { handle: '@LoafyElf', name: 'Loafy the Elf', bio: 'Just... five more minutes.', avatarUrl: 'https.robohash.org/loafy.png?set=set4' },
             { handle: '@ToyInsiderElf', name: 'Toy Insider Elf', bio: 'Reporting live on the hottest new gifts!', avatarUrl: 'https://robohash.org/toy-insider.png?set=set1' },
             { handle: '@HolidayNews', name: 'Holiday News Flash', bio: 'Bringing you festive news from around the globe.', avatarUrl: 'https://robohash.org/news.png?set=set5' },
-            { handle: '@GrumbleElf', name: 'Grumble the Elf', bio: 'Everything is covered in tinsel. I hate it.', avatarUrl: 'https://robohash.org/grumble.png?set=set1' },
+            { handle: '@GrumbleElf', name: 'Grumble the Elf', bio: 'Everything is covered in tinsel. I hate it.', avatarUrl: 'https://robohash.org/grumble.png?set=set1' }
         ];
 
         const insertSql = `
@@ -84,5 +88,4 @@ async function setupDatabase() {
 // Run the setup function if this script is executed directly
 if (require.main === module) {
     setupDatabase();
-
 }
