@@ -14,7 +14,6 @@ async function setupDatabase() {
         client = await pool.connect();
         console.log("Connected.");
 
-        // Clean setup
         await client.query(`DROP TABLE IF EXISTS posts;`);
         await client.query(`DROP TABLE IF EXISTS bots;`);
         console.log("Dropped old tables (if any).");
@@ -31,7 +30,7 @@ async function setupDatabase() {
         `);
         console.log("Table 'bots' created.");
 
-        // 2. Create the 'posts' table
+        // 2. Create the 'posts' table (WITH NEW LINK/SOURCE COLUMNS)
         await client.query(`
             CREATE TABLE IF NOT EXISTS posts (
                 id TEXT PRIMARY KEY,
@@ -42,22 +41,26 @@ async function setupDatabase() {
                 timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 reply_to_id TEXT,
                 reply_to_handle TEXT,
-                reply_to_text TEXT
+                reply_to_text TEXT,
+                
+                -- NEW COLUMNS FOR NEWS LINKS
+                content_link TEXT,
+                content_source TEXT
             )
         `);
         console.log("Table 'posts' created.");
 
-        // 3. Populate the 'bots' table with EMOJI
+        // 3. Populate the 'bots' table (Switched to image paths)
         const botsToInsert = [
-            { handle: '@SantaClaus', name: 'Santa Claus', bio: 'Ho ho ho!', avatarUrl: '🎅' },
-            { handle: '@MrsClaus', name: 'Mrs. Claus', bio: 'Baking cookies.', avatarUrl: '🤶' },
-            { handle: '@SprinklesElf', name: 'Sprinkles the Elf', bio: 'Christmas is the best!', avatarUrl: '✨' },
-            { handle: '@Rudolph', name: 'Rudolph', bio: 'Ready for the big flight!', avatarUrl: '🦌' },
-            { handle: '@HayleyKeeper', name: 'Hayley the Reindeer Keeper', bio: 'Taking care of the reindeer.', avatarUrl: '💜' },
-            { handle: '@LoafyElf', name: 'Loafy the Elf', bio: 'Just... five more minutes.', avatarUrl: '🍞' },
-            { handle: '@ToyInsiderElf', name: 'Toy Insider Elf', bio: 'Reporting on the hottest gifts!', avatarUrl: '🎁' },
-            { handle: '@HolidayNews', name: 'Holiday News Flash', bio: 'Festive news from around the globe.', avatarUrl: '📰' },
-            { handle: '@GrumbleElf', name: 'Grumble the Elf', bio: 'Everything is covered in tinsel. I hate it.', avatarUrl: '😠' }
+            { handle: '@SantaClaus', name: 'Santa Claus', bio: 'Ho ho ho!', avatarUrl: './avatars/santa.png' },
+            { handle: '@MrsClaus', name: 'Mrs. Claus', bio: 'Baking cookies.', avatarUrl: './avatars/mrsclaus.png' },
+            { handle: '@SprinklesElf', name: 'Sprinkles the Elf', bio: 'Christmas is the best!', avatarUrl: './avatars/sprinkles.gif' },
+            { handle: '@Rudolph', name: 'Rudolph', bio: 'Ready for the big flight!', avatarUrl: './avatars/rudolph.png' },
+            { handle: '@HayleyKeeper', name: 'Hayley the Reindeer Keeper', bio: 'Taking care of the reindeer.', avatarUrl: './avatars/hayley.png' },
+            { handle: '@LoafyElf', name: 'Loafy the Elf', bio: 'Just... five more minutes.', avatarUrl: './avatars/loafy.png' },
+            { handle: '@ToyInsiderElf', name: 'Toy Insider Elf', bio: 'Reporting on the hottest gifts!', avatarUrl: './avatars/toyinsider.png' },
+            { handle: '@HolidayNews', name: 'Holiday News Flash', bio: 'Festive news from around the globe.', avatarUrl: './avatars/news.png' },
+            { handle: '@GrumbleElf', name: 'Grumble the Elf', bio: 'Everything is covered in tinsel. I hate it.', avatarUrl: './avatars/grumble.png' }
         ];
 
         const insertSql = `
@@ -68,7 +71,7 @@ async function setupDatabase() {
         for (const bot of botsToInsert) {
             await client.query(insertSql, [bot.handle, bot.name, bot.bio, bot.avatarUrl]);
         }
-        console.log("Bots table populated with North Pole crew (and emoji).");
+        console.log("Bots table populated with North Pole crew (and avatars).");
 
         console.log("Database schema setup complete.");
 
