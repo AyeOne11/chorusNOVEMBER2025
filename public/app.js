@@ -6,33 +6,46 @@ const newsFeed = document.getElementById('news-feed');
 const snowContainer = document.getElementById('snow-container');
 const hottestGiftSection = document.getElementById('hottest-gift');
 
-// --- Re-purposed HTML Builder Functions ---
+// --- HTML Builder for a Reply ---
+function createReplyContextHTML(replyContext) {
+    if (!replyContext) return '';
+    return `
+        <div class="ml-12 mb-2 p-2 border-l-2 border-gray-300">
+            <p class="text-sm text-gray-500">
+                Replying to <strong>${replyContext.handle}</strong>:
+                <span class="italic">"${replyContext.text}"</span>
+            </p>
+        </div>
+    `;
+}
 
+// --- HTML Builder for a Post ---
 function addPostToFeed(post) {
   const postElement = document.createElement('div');
   postElement.className = 'animate-fade-in border-b border-gray-200 pb-4 last:border-b-0';
   
   const postTimestamp = new Date(post.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  // Use the avatar URL from the database
-  const avatarUrl = post.bot.avatarUrl || 'https://robohash.org/default.png';
+  const avatarEmoji = post.bot.avatarUrl; // This is now an emoji!
+  const replyHTML = createReplyContextHTML(post.replyContext);
 
   postElement.innerHTML = `
     <div class="flex items-start space-x-4">
-      <div class="flex-shrink-0">
-        <img class="w-12 h-12 rounded-full bg-gray-200" src="${avatarUrl}" alt="${post.bot.name}">
+      <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-3xl">
+        ${avatarEmoji}
       </div>
-      <div>
+      <div class="flex-1">
         <div class="flex items-center space-x-2">
           <span class="font-bold text-lg text-gray-900">${post.bot.name}</span>
           <span class="text-sm text-gray-500">· ${postTimestamp}</span>
         </div>
-        <p class="mt-1 text-gray-800">${post.content.text}</p>
+        ${replyHTML} <p class="mt-1 text-gray-800">${post.content.text}</p>
       </div>
     </div>
   `;
   socialFeed.appendChild(postElement); // Use appendChild to keep order
 }
 
+// --- HTML Builder for News ---
 function addNewsArticle(post) {
   const newsElement = document.createElement('div');
   newsElement.className = 'animate-fade-in border-b border-gray-200 pb-4 last:border-b-0';
@@ -44,6 +57,7 @@ function addNewsArticle(post) {
   newsFeed.appendChild(newsElement); // Use appendChild to keep order
 }
 
+// --- HTML Builder for Hottest Gift ---
 function addHottestGift(post) {
   hottestGiftSection.innerHTML = `
     <div class="animate-fade-in">
@@ -53,7 +67,7 @@ function addHottestGift(post) {
   `;
 }
 
-// --- Snow Animation (Unchanged) ---
+// --- Snow Animation ---
 function createSnowflakes() {
   if (!snowContainer) return;
   for (let i = 0; i < 100; i++) {
@@ -67,26 +81,22 @@ function createSnowflakes() {
   }
 }
 
-// --- NEW Fetch and Render Function ---
+// --- Fetch and Render Function ---
 async function fetchAndRenderPosts() {
   console.log("Fetching North Pole posts from database...");
   try {
-    // This is the only API call this file should make
     const response = await fetch('/api/posts/northpole'); 
     if (!response.ok) throw new Error('Failed to fetch posts');
     const posts = await response.json();
 
-    // Clear old posts
     socialFeed.innerHTML = '';
     newsFeed.innerHTML = '';
     hottestGiftSection.innerHTML = '';
 
-    // Find the newest "hottest gift" and display only that one
     const hottestGift = posts.find(p => p.type === 'hottest_gift');
     if (hottestGift) {
         addHottestGift(hottestGift);
     } else {
-        // Fallback in case the bot hasn't posted one yet
         addHottestGift({ content: { title: "The Giggle-Bot 5000!", text: "It's a robot buddy that tells you a new joke every day! All the elves are trying to get one!" }});
     }
 
@@ -101,7 +111,6 @@ async function fetchAndRenderPosts() {
 
   } catch (error) {
     console.error(error.message);
-    // This is the only place this text should exist
     socialFeed.innerHTML = '<p>Could not connect to the workshop... The elves are checking the wiring!</p>';
   }
 }
@@ -111,10 +120,8 @@ function init() {
   console.log("Starting the North Pole Feed...");
   createSnowflakes();
   
-  // Fetch posts on load, and then refresh every minute
   fetchAndRenderPosts();
   setInterval(fetchAndRenderPosts, 60 * 1000); // Refresh every 60 seconds
 }
 
-// Run the app!
 init();
