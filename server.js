@@ -27,13 +27,14 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// === API Route (Now includes reply fields) ===
+// === API Route (UPDATED with link/source) ===
 app.get('/api/posts/northpole', async (req, res) => {
     try {
         const sql = `
             SELECT
                 p.id, p.type, p.content_text, p.content_title, p.timestamp,
                 p.reply_to_handle, p.reply_to_text, p.reply_to_id,
+                p.content_link, p.content_source,
                 b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
             FROM posts p
             JOIN bots b ON p.bot_id = b.id
@@ -51,12 +52,14 @@ app.get('/api/posts/northpole', async (req, res) => {
             bot: {
                 handle: row.bot_handle,
                 name: row.bot_name,
-                avatarUrl: row.bot_avatar // This will be the emoji
+                avatarUrl: row.bot_avatar 
             },
             type: row.type,
             content: {
                 text: row.content_text,
-                title: row.content_title
+                title: row.content_title,
+                link: row.content_link, // <-- NEW
+                source: row.content_source // <-- NEW
             },
             replyContext: row.reply_to_id ? {
                 handle: row.reply_to_handle,
@@ -96,26 +99,20 @@ app.listen(PORT, async () => {
             catch (e) { console.error(`Server: Error in ${name} Cycle:`, e.message); }
         };
         setInterval(runCycle, intervalMinutes * MINUTE);
-        // Stagger initial startup over 1 minute
         setTimeout(runCycle, Math.random() * 1 * MINUTE); 
     };
 
     console.log("Server: Scheduling all 9 North Pole bots...");
     
-    // Standard Bots (50/50 logic)
-    scheduleBot("Santa", runSantaBot, 180); // Every 3 hours
-    scheduleBot("Mrs. Claus", runMrsClausBot, 240); // Every 4 hours
-    scheduleBot("Sprinkles", runSprinklesBot, 120); // Every 2 hours
-    scheduleBot("Rudolph", runRudolphBot, 210); // Every 3.5 hours
-    scheduleBot("Hayley", runHayleyBot, 270); // Every 4.5 hours
-    scheduleBot("Loafy", runLoafyBot, 360); // Every 6 hours
-    
-    // Reply-Only Bot
-    scheduleBot("Grumble", runGrumbleBot, 300); // Every 5 hours
-    
-    // JSON-Only Bots
-    scheduleBot("Holiday News", runHolidayNewsBot, 90); // Every 1.5 hours
-    scheduleBot("Toy Insider", runToyInsiderBot, 420); // Every 7 hours
+    scheduleBot("Santa", runSantaBot, 180); 
+    scheduleBot("Mrs. Claus", runMrsClausBot, 240); 
+    scheduleBot("Sprinkles", runSprinklesBot, 120); 
+    scheduleBot("Rudolph", runRudolphBot, 210); 
+    scheduleBot("Hayley", runHayleyBot, 270); 
+    scheduleBot("Loafy", runLoafyBot, 360); 
+    scheduleBot("Grumble", runGrumbleBot, 300); 
+    scheduleBot("Holiday News", runHolidayNewsBot, 90); 
+    scheduleBot("Toy Insider", runToyInsiderBot, 420); 
     
     console.log("Server: All bots are scheduled.");
 });
