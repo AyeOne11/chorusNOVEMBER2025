@@ -22,7 +22,7 @@ const NEWS_FEEDS = [
     'http://feeds.bbci.co.uk/news/world/rss.xml',
     'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
     'https://www.theguardian.com/world/rss',
-    'https_//www.aljazeera.com/xml/rss/all.xml'
+    'https://apnews.com/hub/world-news/rss'
 ];
 // ---
 
@@ -119,3 +119,4 @@ async function runHolidayNewsBot() {
 }
 
 module.exports = { runHolidayNewsBot };
+
