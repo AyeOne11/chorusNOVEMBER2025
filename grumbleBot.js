@@ -4,9 +4,12 @@ const { Pool } = require('pg');
 const { log } = require('./logger.js');
 require('dotenv').config();
 
+// --- BOT PERSONALITY ---
 const BOT_HANDLE = "@GrumbleElf";
-const SYSTEM_INSTRUCTION = "You are Grumble the Elf. You are grumpy, sarcastic, and fed up with the workshop. You are replying to another bot's post. Keep your reply to 1-2 short, complaining sentences.";
+const SYSTEM_INSTRUCTION = "You are Grumble the Elf. You are grumpy, sarcastic, and fed up with the workshop. Keep your reply to 1-2 short, complaining sentences.";
+const NEW_POST_PROMPT = "Write a short, grumpy, sarcastic post (1-2 sentences) about how annoying something at the North Pole is (like the cold, the jingle bells, the happiness).";
 const REPLY_PROMPT = (originalPost) => `The other bot posted: "${originalPost}".\n\nWrite a short, grumpy, sarcastic reply. Complain about the post's topic. Do NOT be friendly.`;
+// --- END PERSONALITY ---
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const pool = new Pool({
@@ -74,6 +77,22 @@ async function findPostToReplyTo() {
     }
 }
 
+async function savePost(text) {
+    log(BOT_HANDLE, "Saving new post to DB...");
+    const client = await pool.connect();
+    const echoId = `echo-${new Date().getTime()}-grumble`;
+    try {
+        const sql = `INSERT INTO posts (id, bot_id, type, content_text)
+                     VALUES ($1, (SELECT id FROM bots WHERE handle = $2), $3, $4)`;
+        await client.query(sql, [echoId, BOT_HANDLE, 'post', text]);
+        log(BOT_HANDLE, "Success! New post added.", 'success');
+    } catch (err) {
+        log(BOT_HANDLE, `Error saving post: ${err.message}`, 'error');
+    } finally {
+        client.release();
+    }
+}
+
 async function saveReply(text, postToReplyTo) {
     log(BOT_HANDLE, `Saving reply to ${postToReplyTo.handle}...`);
     const client = await pool.connect();
@@ -96,18 +115,35 @@ async function saveReply(text, postToReplyTo) {
     }
 }
 
+// --- MAIN RUNNER (50/50 LOGIC) ---
 async function runGrumbleBot() {
-    log(BOT_HANDLE, "Mode: Reply");
-    const postToReplyTo = await findPostToReplyTo();
-    if (postToReplyTo) {
-        const originalPostText = postToReplyTo.content_title || postToReplyTo.content_text;
-        const replyText = await generateAIContent(REPLY_PROMPT(originalPostText), SYSTEM_INSTRUCTION);
-        if (replyText) {
-            await saveReply(replyText, postToReplyTo);
+    if (Math.random() < 0.5) {
+        // 50% chance to post new content
+        log(BOT_HANDLE, "Mode: New Grumpy Post");
+        const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
+        if (newPostText) {
+            await savePost(newPostText);
         }
     } else {
-        log(BOT_HANDLE, "No posts to complain about. Good. Back to my nap.");
+        // 50% chance to reply
+        log(BOT_HANDLE, "Mode: Grumpy Reply");
+        const postToReplyTo = await findPostToReplyTo();
+        if (postToReplyTo) {
+            const originalPostText = postToReplyTo.content_title || postToReplyTo.content_text;
+            const replyText = await generateAIContent(REPLY_PROMPT(originalPostText), SYSTEM_INSTRUCTION);
+            if (replyText) {
+                await saveReply(replyText, postToReplyTo);
+            }
+        } else {
+            log(BOT_HANDLE, "No posts to complain about, so I'll complain anyway.");
+            const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
+            if (newPostText) {
+                await savePost(newPostText);
+            }
+        }
     }
 }
 
 module.exports = { runGrumbleBot };
+
+//<p> COPYRIGHT THE ANIMA DIGITALIS ALL RIGHTS RESERVED </p> //
