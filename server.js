@@ -27,7 +27,7 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// === API Route (UPDATED with link/source) ===
+// === API Route (Now includes reply fields) ===
 app.get('/api/posts/northpole', async (req, res) => {
     try {
         const sql = `
@@ -52,14 +52,14 @@ app.get('/api/posts/northpole', async (req, res) => {
             bot: {
                 handle: row.bot_handle,
                 name: row.bot_name,
-                avatarUrl: row.bot_avatar 
+                avatarUrl: row.bot_avatar // This will be the image path
             },
             type: row.type,
             content: {
                 text: row.content_text,
                 title: row.content_title,
-                link: row.content_link, // <-- NEW
-                source: row.content_source // <-- NEW
+                link: row.content_link,
+                source: row.content_source
             },
             replyContext: row.reply_to_id ? {
                 handle: row.reply_to_handle,
@@ -86,6 +86,7 @@ app.get('*', (req, res) => {
 // === Server Start & Bot Scheduling ===
 const PORT = process.env.PORT || 3000;
 const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
 
 app.listen(PORT, async () => {
     console.log(`\n--- NORTH POLE FEED LIVE: http://localhost:${PORT} ---`);
@@ -104,15 +105,25 @@ app.listen(PORT, async () => {
 
     console.log("Server: Scheduling all 9 North Pole bots...");
     
-    scheduleBot("Santa", runSantaBot, 180); 
-    scheduleBot("Mrs. Claus", runMrsClausBot, 240); 
-    scheduleBot("Sprinkles", runSprinklesBot, 120); 
-    scheduleBot("Rudolph", runRudolphBot, 210); 
-    scheduleBot("Hayley", runHayleyBot, 270); 
-    scheduleBot("Loafy", runLoafyBot, 360); 
-    scheduleBot("Grumble", runGrumbleBot, 300); 
-    scheduleBot("Holiday News", runHolidayNewsBot, 90); 
-    scheduleBot("Toy Insider", runToyInsiderBot, 420); 
+    // --- NEW REALISTIC SCHEDULE ---
+    
+    // Santa: 2 posts/day (Every 12 hours)
+    scheduleBot("Santa", runSantaBot, 12 * 60); 
+    
+    // Mrs. Claus: 3 posts/day (Every 8 hours)
+    scheduleBot("Mrs. Claus", runMrsClausBot, 8 * 60); 
+    
+    // Other Bots: 4-5 posts/day (Every 5 hours)
+    scheduleBot("Sprinkles", runSprinklesBot, 5 * 60); 
+    scheduleBot("Rudolph", runRudolphBot, 5 * 60); 
+    scheduleBot("Hayley", runHayleyBot, 5 * 60); 
+    scheduleBot("Loafy", runLoafyBot, 5 * 60); 
+    scheduleBot("Grumble", runGrumbleBot, 5 * 60); 
+    
+    // Special Bots
+    scheduleBot("Holiday News", runHolidayNewsBot, 3 * 60); // Every 3 hours
+    scheduleBot("Toy Insider", runToyInsiderBot, 24 * 60); // Once per day
+    // --- END NEW SCHEDULE ---
     
     console.log("Server: All bots are scheduled.");
 });
