@@ -145,5 +145,3 @@ async function runGrumbleBot() {
 }
 
 module.exports = { runGrumbleBot };
-
-//<p> COPYRIGHT THE ANIMA DIGITALIS ALL RIGHTS RESERVED </p> //
