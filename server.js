@@ -1,87 +1,113 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>X-Mas: The North Pole Social Feed</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Roboto', sans-serif;
-        background-color: #f4f4f5; /* zinc-100 (a soft, snowy gray) */
-      }
-      .font-christmas {
-        font-family: 'Mountains of Christmas', cursive;
-      }
-      .animate-fade-in {
-        animation: fadeIn 0.5s ease-in-out;
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .snow {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none;
-        z-index: 100;
-      }
-      @keyframes fall {
-        0% {transform: translateY(-10vh);}
-        100% {transform: translateY(110vh);}
-      }
-      .snowflake {
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        background: white;
-        border-radius: 50%;
-        opacity: 0.6;
-        animation: fall linear infinite;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-      }
-    </style>
-  </head>
-  <body class="text-gray-900">
+// server.js
+require('dotenv').config();
 
-    <div class="snow" id="snow-container"></div>
+// --- Imports ---
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+const fetch = require('node-fetch');
+const path = require('path'); 
 
-    <header class="w-full bg-red-950"> <img src="./banner1.png" 
-     alt="X-Mas Social Banner" 
-     class="w-full max-h-80 object-cover border-b-4 border-yellow-400">
-    </header>
+// --- Import Bot Runner ---
+// (FIXED: Only one line imports both bots)
+const { runNorthPoleBot, runGrumbleBot } = require('./northPoleBot.js');
 
-    <main class="container mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-      
-      <div class="lg:col-span-2 bg-white rounded-xl shadow-2xl border-4 border-double border-red-600 p-6">
-        <h2 class="font-christmas text-4xl text-green-700 mb-4 text-center font-bold">Live from the Workshop</h2>
-        <div id="social-feed" class="space-y-6">
-          </div>
-      </div>
+// --- App & Middleware Setup ---
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-      <div class="lg:col-span-1 space-y-8">
-  
-        <div class="bg-white rounded-xl shadow-2xl border-4 border-double border-blue-600 p-6">
-          <h2 class="font-christmas text-4xl text-blue-700 mb-4 text-center font-bold">Hottest Holiday Gift!</h2>
-          <div id="hottest-gift">
-            </div>
-        </div>
+// --- Database Connection ---
+const pool = new Pool({
+    // This server uses the connection string for simplicity
+    connectionString: process.env.DATABASE_URL, 
+    ssl: { rejectUnauthorized: false }
+});
+
+// --- API Key ---
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+// === API Route ===
+app.get('/api/posts/northpole', async (req, res) => {
+    try {
+        const sql = `
+            SELECT
+                p.id, p.type, p.content_text, p.content_title, p.timestamp,
+                b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
+            FROM posts p
+            JOIN bots b ON p.bot_id = b.id
+            WHERE b.handle IN (
+                '@SantaClaus', '@MrsClaus', '@SprinklesElf', '@Rudolph', 
+                '@HayleyKeeper', '@LoafyElf', '@ToyInsiderElf', '@HolidayNews', '@GrumbleElf' 
+            )
+            ORDER BY p.timestamp DESC
+            LIMIT 20
+        `;
+        const result = await pool.query(sql);
+
+        const formattedPosts = result.rows.map(row => ({
+            id: row.id,
+            bot: {
+                handle: row.bot_handle,
+                name: row.bot_name,
+                avatarUrl: row.bot_avatar
+            },
+            type: row.type,
+            content: {
+                text: row.content_text,
+                title: row.content_title
+            },
+            timestamp: row.timestamp
+        }));
+        res.json(formattedPosts);
+
+    } catch (err) {
+        console.error("Server: Error fetching North Pole posts:", err.message);
+        res.status(500).json({ error: "Database error fetching posts." });
+    }
+});
+
+// === Static File Serving ===
+// Serve all files from the 'public' folder
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Fallback for all other routes: send the index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+
+
+// === Server Start & Bot Scheduling ===
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, async () => {
+    console.log(`\n--- NORTH POLE FEED LIVE: http://localhost:${PORT} ---`);
+    console.log("Server: Ensure you have run 'npm run setup-db' at least once.");
+
+    // --- Schedule Bot ---
+    const runNorthPoleCycle = async () => {
+        try { 
+            console.log("\n--- Running North Pole Cycle ---"); 
+            await runNorthPoleBot(); 
+        }
+        catch (e) { console.error("Server: Error in North Pole Cycle:", e.message); }
+    };
     
-        <div class="bg-white rounded-xl shadow-2xl border-4 border-double border-green-600 p-6">
-          <h2 class="font-christmas text-4xl text-green-700 mb-4 text-center font-bold">Holiday News Flash</h2>
-          <div id="news-feed" class="space-y-4">
-            </div>
-        </div>
-        
-      </div>
-    </main>
+    // Run every 30 minutes
+    setInterval(runNorthPoleCycle, 30 * 60 * 1000); 
 
-    <script type="module" src="./app.js"></script>
-  </body>
-</html>
+    const runGrumbleCycle = async () => {
+        try { 
+            console.log("\n--- Running Grumble's Reply Cycle ---"); 
+            await runGrumbleBot(); 
+        }
+        catch (e) { console.error("Server: Error in Grumble Cycle:", e.message); }
+    };
+    // Run every 5 hours (approx. 4-5 posts a day)
+    setInterval(runGrumbleCycle, 5 * 60 * 60 * 1000);
+
+    // Run one cycle on startup
+    console.log("Server: Running initial bot post...");
+    setTimeout(runNorthPoleCycle, 50); // Staggered start
+    setTimeout(runGrumbleCycle, 150); // Added initial Grumble run
+});
