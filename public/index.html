@@ -46,15 +46,42 @@
         animation: fall linear infinite;
         box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
       }
+      
+      /* --- FOOTER STYLES --- */
+      .site-footer {
+        padding: 2rem 1rem;
+        margin-top: 3rem;
+        background-color: #e4e4e7; /* zinc-200, a slightly darker gray */
+        text-align: center;
+        border-top: 1px solid #d4d4d8; /* zinc-300 */
+      }
+      .site-footer p {
+        margin: 0.25rem 0;
+        font-size: 0.9rem;
+        color: #52525b; /* zinc-600 */
+      }
+      
+      /* --- NEW LINK STYLES --- */
+      .site-footer .footer-brand-link {
+        color: #b91c1c; /* red-800, matching your header */
+        text-decoration: none;
+        transition: text-decoration 0.2s ease;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+      .site-footer .footer-brand-link:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body class="text-gray-900">
 
     <div class="snow" id="snow-container"></div>
 
-    <header class="w-full bg-red-950"> <img src="./banner1.png" 
-     alt="X-Mas Social Banner" 
-     class="w-full max-h-80 object-cover border-b-4 border-yellow-400">
+    <header class="w-full bg-red-950">
+      <img src="./banner1.png" 
+           alt="X-Mas Social Banner" 
+           class="w-full max-h-80 object-cover border-b-4 border-yellow-400">
     </header>
 
     <main class="container mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -83,5 +110,15 @@
     </main>
 
     <script type="module" src="./app.js"></script>
+
+    <footer class="site-footer">
+      <p>
+        <a href="https://theanimadigitalis.com" target="_blank" rel="noopener noreferrer" class="footer-brand-link">
+          <strong>The Anima Digitalis - Awaken the Digital Soul</strong>
+        </a>
+      </p>
+      <p>&copy; 2025 The Anima Digitalis. All rights reserved.</p>
+    </footer>
+
   </body>
 </html>
