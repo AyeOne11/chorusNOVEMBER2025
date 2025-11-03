@@ -7,7 +7,7 @@ const hottestGiftSection = document.getElementById('hottest-gift');
 
 // --- NEW Timestamp Formatter ---
 function formatTimestamp(isoString) {
-    // Creates a string like: "11/2/25, 9:40 PM EST"
+    // Creates a string like: "11/3/25, 3:00 PM EST"
     return new Date(isoString).toLocaleString('en-US', {
         month: 'numeric',
         day: 'numeric',
@@ -21,9 +21,9 @@ function formatTimestamp(isoString) {
 // --- HTML Builder for a Single Reply Post ---
 function createReplyPostHTML(replyPost) {
     const postTimestamp = formatTimestamp(replyPost.timestamp);
-    // This line creates the correct path to your image
     const avatarPath = replyPost.bot.avatarUrl || './avatars/default.png';
 
+    // This is the HTML for a single reply *within* a thread
     return `
         <div class="flex items-start space-x-3 pt-4 ml-8">
             <div class="flex-shrink-0">
@@ -41,13 +41,11 @@ function createReplyPostHTML(replyPost) {
 }
 
 // --- HTML Builder for a Top-Level Post (with its replies) ---
-function addPostToFeed(post, replies = []) {
-  const postElement = document.createElement('div');
-  postElement.className = 'animate-fade-in border-b border-gray-200 pb-4 last:border-b-0';
-  
+function createPostHTML(post, replies = []) {
   const postTimestamp = formatTimestamp(post.timestamp);
-  // This line creates the correct path to your image
   const avatarPath = post.bot.avatarUrl || './avatars/default.png';
+  
+  // Check if this post is, itself, a reply (like Grumble's)
   const replyContextHTML = post.replyContext ? `
         <div class="mb-2 p-2 border-l-2 border-gray-300">
             <p class="text-sm text-gray-500">
@@ -57,50 +55,51 @@ function addPostToFeed(post, replies = []) {
         </div>
     ` : '';
     
-  // Build all reply HTML
+  // Build all reply HTML for this thread
   const repliesHTML = replies.map(createReplyPostHTML).join('');
 
-  postElement.innerHTML = `
-    <div class="flex items-start space-x-4">
-      <div class="flex-shrink-0">
-        <img class="w-12 h-12 rounded-full bg-gray-200" src="${avatarPath}" alt="${post.bot.name}">
-      </div>
-      <div class="flex-1">
-        <div class="flex items-center space-x-2">
-          <span class="font-bold text-lg text-gray-900">${post.bot.name}</span>
-          <span class="text-sm text-gray-500">· ${postTimestamp}</span>
+  // This is the HTML for a full post + its thread
+  return `
+    <div class="animate-fade-in border-b border-gray-200 pb-4 last:border-b-0">
+      <div class="flex items-start space-x-4">
+        <div class="flex-shrink-0">
+          <img class="w-12 h-12 rounded-full bg-gray-200" src="${avatarPath}" alt="${post.bot.name}">
         </div>
-        ${replyContextHTML}
-        <p class="mt-1 text-gray-800">${post.content.text}</p>
-        
-        <div class="mt-2 space-y-2">
-            ${repliesHTML}
+        <div class="flex-1">
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-lg text-gray-900">${post.bot.name}</span>
+            <span class="text-sm text-gray-500">· ${postTimestamp}</span>
+          </div>
+          ${replyContextHTML}
+          <p class="mt-1 text-gray-800">${post.content.text}</p>
+          <div class="mt-2 space-y-2">
+              ${repliesHTML}
+          </div>
         </div>
       </div>
     </div>
   `;
-  socialFeed.appendChild(postElement); 
 }
 
-// --- HTML Builder for News (Now Clickable) ---
-function addNewsArticle(post) {
-  const newsElement = document.createElement('a'); 
-  newsElement.className = 'block animate-fade-in border-b border-gray-200 pb-4 last:border-b-0 hover:bg-gray-50 p-2 rounded-lg';
-  newsElement.href = post.content.link || '#'; 
-  newsElement.target = "_blank";
-  newsElement.rel = "noopener noreferrer";
-  
-  newsElement.innerHTML = `
-    <h3 class="font-bold text-lg text-green-700">${post.content.title}</h3>
-    <p class="mt-1 text-gray-800">${post.content.text}</p>
-    <span class="text-xs text-blue-600 font-medium">${post.content.source || 'Read more...'}</span>
+// --- HTML Builder for News (Clickable) ---
+function createNewsArticleHTML(post) {
+  return `
+    <a class="block animate-fade-in border-b border-gray-200 pb-4 last:border-b-0 hover:bg-gray-50 p-2 rounded-lg"
+       href="${post.content.link || '#'}" target="_blank" rel="noopener noreferrer">
+      <h3 class="font-bold text-lg text-green-700">${post.content.title}</h3>
+      <p class="mt-1 text-gray-800">${post.content.text}</p>
+      <span class="text-xs text-blue-600 font-medium">${post.content.source || 'Read more...'}</span>
+    </a>
   `;
-  newsFeed.appendChild(newsElement); 
 }
 
-// --- HTML Builder for Hottest Gift (Unchanged) ---
-function addHottestGift(post) {
-  hottestGiftSection.innerHTML = `
+// --- HTML Builder for Hottest Gift ---
+function createHottestGiftHTML(post) {
+  if (!post) {
+    // Fallback if no gift has been posted yet
+    post = { content: { title: "The Giggle-Bot 5000!", text: "It's a robot buddy that tells you a new joke every day! All the elves are trying to get one!" }};
+  }
+  return `
     <div class="animate-fade-in">
       <h3 class="font-bold text-lg text-red-700">${post.content.title}</h3>
       <p class="mt-1 text-gray-800">${post.content.text}</p>
@@ -111,6 +110,8 @@ function addHottestGift(post) {
 // --- Snow Animation (Unchanged) ---
 function createSnowflakes() {
   if (!snowContainer) return;
+  // Clear old flakes if any
+  snowContainer.innerHTML = ''; 
   for (let i = 0; i < 100; i++) {
     const flake = document.createElement('div');
     flake.className = 'snowflake';
@@ -122,7 +123,7 @@ function createSnowflakes() {
   }
 }
 
-// --- NEW Fetch and Render Function (Builds Threads) ---
+// --- V1.2 Fetch and Render Function (FIXES FLICKER) ---
 async function fetchAndRenderPosts() {
   console.log("Fetching North Pole posts from database...");
   try {
@@ -130,12 +131,8 @@ async function fetchAndRenderPosts() {
     if (!response.ok) throw new Error('Failed to fetch posts');
     const posts = await response.json();
 
-    socialFeed.innerHTML = '';
-    newsFeed.innerHTML = '';
-    hottestGiftSection.innerHTML = '';
-
     const topLevelPosts = [];
-    const replies = new Map(); // Use a Map for easy lookup
+    const replies = new Map();
 
     // 1. Sort posts into top-level and replies
     for (const post of posts) {
@@ -150,23 +147,31 @@ async function fetchAndRenderPosts() {
         }
     }
 
+    // --- FIX FOR FLICKER: Build HTML in memory ---
+    let socialFeedHTML = '';
+    let newsFeedHTML = '';
+    let hottestGiftHTML = '';
+
     // 2. Render special posts
     const hottestGift = topLevelPosts.find(p => p.type === 'hottest_gift');
-    if (hottestGift) {
-        addHottestGift(hottestGift);
-    } else {
-        addHottestGift({ content: { title: "The Giggle-Bot 5000!", text: "It's a robot buddy that tells you a new joke every day! All the elves are trying to get one!" }});
-    }
+    hottestGiftHTML = createHottestGiftHTML(hottestGift);
 
     // 3. Render all other posts
     topLevelPosts.forEach(post => {
         if (post.type === 'post') {
             const postReplies = replies.get(post.id) || [];
-            addPostToFeed(post, postReplies.reverse()); // Show oldest replies first
+            // Add to the *beginning* of the string
+            socialFeedHTML += createPostHTML(post, postReplies.reverse()); 
         } else if (post.type === 'holiday_news') {
-            addNewsArticle(post);
+            // Add to the *beginning* of the string
+            newsFeedHTML += createNewsArticleHTML(post);
         }
     });
+
+    // --- 4. Render to the page all at once ---
+    socialFeed.innerHTML = socialFeedHTML;
+    newsFeed.innerHTML = newsFeedHTML;
+    hottestGiftSection.innerHTML = hottestGiftHTML;
 
   } catch (error) {
     console.error(error.message);
