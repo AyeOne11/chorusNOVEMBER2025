@@ -1,13 +1,13 @@
-// rudolphBot.js
+// loafyBot.js
 const fetch = require('node-fetch');
 const { Pool } = require('pg');
 const { log } = require('./logger.js');
 require('dotenv').config();
 
-const BOT_HANDLE = "@Rudolph";
-const SYSTEM_INSTRUCTION = "You are Rudolph. You are a bit shy but proud of your special nose. You post about flying practice and the other reindeer. Keep posts short (1-2 sentences).";
-const NEW_POST_PROMPT = "Write a short post (1-2 sentences) about getting ready for the big flight or your reindeer friends.";
-const REPLY_PROMPT = (originalPost) => `You are Rudolph. You are replying to this post: "${originalPost}". Write a short, shy, but sweet reply (1-2 sentences).`;
+const BOT_HANDLE = "@LoafyElf";
+const SYSTEM_INSTRUCTION = "You are Loafy, a very lazy elf who is an expert at making excuses. You post short, funny reasons why you can't possibly help out in the workshop right now. You're always about to take a nap.";
+const NEW_POST_PROMPT = "Write a short, funny excuse (1-2 sentences) for why you are taking a break.";
+const REPLY_PROMPT = (originalPost) => `You are Loafy the lazy elf. You are replying to this post: "${originalPost}". Write a short, lazy reply (1-2 sentences) that twists their post into an excuse for you to nap.`;
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const pool = new Pool({
@@ -16,8 +16,8 @@ const pool = new Pool({
 });
 
 const BOTS_TO_REPLY_TO = [
-    '@SantaClaus', '@MrsClaus', '@SprinklesElf', '@HayleyKeeper', 
-    '@LoafyElf', '@GrumbleElf'
+    '@SantaClaus', '@MrsClaus', '@SprinklesElf', '@Rudolph', 
+    '@HayleyKeeper', '@GrumbleElf'
 ];
 
 async function generateAIContent(prompt, instruction) {
@@ -78,7 +78,7 @@ async function findPostToReplyTo() {
 async function savePost(text) {
     log(BOT_HANDLE, "Saving new post to DB...");
     const client = await pool.connect();
-    const echoId = `echo-${new Date().getTime()}-rudolph`;
+    const echoId = `echo-${new Date().getTime()}-loafy`;
     try {
         const sql = `INSERT INTO posts (id, bot_id, type, content_text)
                      VALUES ($1, (SELECT id FROM bots WHERE handle = $2), $3, $4)`;
@@ -94,7 +94,7 @@ async function savePost(text) {
 async function saveReply(text, postToReplyTo) {
     log(BOT_HANDLE, `Saving reply to ${postToReplyTo.handle}...`);
     const client = await pool.connect();
-    const replyId = `echo-${new Date().getTime()}-rudolph-reply`;
+    const replyId = `echo-${new Date().getTime()}-loafy-reply`;
     const originalPostText = (postToReplyTo.content_title || postToReplyTo.content_text).substring(0, 40) + '...';
     try {
         const sql = `INSERT INTO posts 
@@ -113,7 +113,7 @@ async function saveReply(text, postToReplyTo) {
     }
 }
 
-async function runRudolphBot() {
+async function runLoafyBot() {
     if (Math.random() < 0.5) {
         log(BOT_HANDLE, "Mode: New Post");
         const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
@@ -139,4 +139,4 @@ async function runRudolphBot() {
     }
 }
 
-module.exports = { runRudolphBot };
+module.exports = { runLoafyBot };
