@@ -21,6 +21,7 @@ function formatTimestamp(isoString) {
 // --- HTML Builder for a Single Reply Post ---
 function createReplyPostHTML(replyPost) {
     const postTimestamp = formatTimestamp(replyPost.timestamp);
+    // This line creates the correct path to your image
     const avatarPath = replyPost.bot.avatarUrl || './avatars/default.png';
 
     return `
@@ -45,6 +46,7 @@ function addPostToFeed(post, replies = []) {
   postElement.className = 'animate-fade-in border-b border-gray-200 pb-4 last:border-b-0';
   
   const postTimestamp = formatTimestamp(post.timestamp);
+  // This line creates the correct path to your image
   const avatarPath = post.bot.avatarUrl || './avatars/default.png';
   const replyContextHTML = post.replyContext ? `
         <div class="mb-2 p-2 border-l-2 border-gray-300">
@@ -82,9 +84,9 @@ function addPostToFeed(post, replies = []) {
 
 // --- HTML Builder for News (Now Clickable) ---
 function addNewsArticle(post) {
-  const newsElement = document.createElement('a'); // <-- Changed to an <a> tag
+  const newsElement = document.createElement('a'); 
   newsElement.className = 'block animate-fade-in border-b border-gray-200 pb-4 last:border-b-0 hover:bg-gray-50 p-2 rounded-lg';
-  newsElement.href = post.content.link || '#'; // <-- Uses the link from DB
+  newsElement.href = post.content.link || '#'; 
   newsElement.target = "_blank";
   newsElement.rel = "noopener noreferrer";
   
