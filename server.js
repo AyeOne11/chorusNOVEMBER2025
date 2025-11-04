@@ -24,12 +24,10 @@ app.use(express.json());
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL, 
-    ssl: false // Set to false for Render's internal network
+    ssl: { rejectUnauthorized: false }
 });
 
-// === API Routes ===
-
-// 1. Main feed route
+// === API Route (Unchanged) ===
 app.get('/api/posts/northpole', async (req, res) => {
     try {
         const sql = `
@@ -78,68 +76,41 @@ app.get('/api/posts/northpole', async (req, res) => {
     }
 });
 
-// 2. API Route for Bot Directory
-app.get('/api/bots', async (req, res) => {
-    try {
-        const sql = `
-            SELECT handle, name, bio, avatarurl AS "avatarUrl"
-            FROM bots
-            ORDER BY name
-        `;
-        const result = await pool.query(sql);
-        res.json(result.rows);
-    } catch (err) {
-        console.error("Server: Error fetching bots:", err.message);
-        res.status(500).json({ error: "Database error fetching bots." });
-    }
-});
-
-// 3. API Route for Gift Guide
-app.get('/api/posts/giftguide', async (req, res) => {
-    try {
-        const sql = `
-            SELECT id, type, content_text, content_title, timestamp
-            FROM posts p
-            WHERE bot_id = (SELECT id FROM bots WHERE handle = '@ToyInsiderElf')
-            ORDER BY p.timestamp DESC
-            LIMIT 50
-        `;
-        const result = await pool.query(sql);
-        res.json(result.rows); // Send the raw posts
-    } catch (err) {
-        console.error("Server: Error fetching gift guide posts:", err.message);
-        res.status(500).json({ error: "Database error fetching posts." });
-    }
-});
-
-
-// === Static File Serving ===
+// === Static File Serving (Unchanged) ===
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Fallback for all other routes: send the index.html
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 
-// === Server Start & Bot Scheduling (Chance-Based Logic) ===
+// === Server Start & Bot Scheduling (NEW CHANCE-BASED LOGIC) ===
 const PORT = process.env.PORT || 3000;
 const MINUTE = 60 * 1000;
+const MINUTES_IN_DAY = 24 * 60;
 
 app.listen(PORT, async () => {
     console.log(`\n--- NORTH POLE FEED LIVE: http://localhost:${PORT} ---`);
     
     // --- Define Bot Probabilities (per minute) ---
     const botSchedule = [
-        { name: "Santa", runner: runSantaBot, probability: (1 / 720) }, // 2 posts/day
-        { name: "Mrs. Claus", runner: runMrsClausBot, probability: (1 / 480) }, // 3 posts/day
-        { name: "Sprinkles", runner: runSprinklesBot, probability: (1 / 288) }, // 5 posts/day
-        { name: "Rudolph", runner: runRudolphBot, probability: (1 / 288) }, // 5 posts/day
-        { name: "Hayley", runner: runHayleyBot, probability: (1 / 288) }, // 5 posts/day
-        { name: "Loafy", runner: runLoafyBot, probability: (1 / 288) }, // 5 posts/day
-        { name: "Grumble", runner: runGrumbleBot, probability: (1 / 288) }, // 5 posts/day
-        { name: "Holiday News", runner: runHolidayNewsBot, probability: (1 / 180) }, // 8 posts/day
-        { name: "Toy Insider", runner: runToyInsiderBot, probability: (1 / 1440) } // 1 post/day
+        // Santa: 2 posts/day. (2 / 1440 minutes) = 1 in 720 chance per minute
+        { name: "Santa", runner: runSantaBot, probability: (1 / 720) }, 
+        
+        // Mrs. Claus: 3 posts/day. (3 / 1440 minutes) = 1 in 480 chance per minute
+        { name: "Mrs. Claus", runner: runMrsClausBot, probability: (1 / 480) }, 
+        
+        // Other Bots: 5 posts/day. (5 / 1440 minutes) = 1 in 288 chance per minute
+        { name: "Sprinkles", runner: runSprinklesBot, probability: (1 / 288) }, 
+        { name: "Rudolph", runner: runRudolphBot, probability: (1 / 288) }, 
+        { name: "Hayley", runner: runHayleyBot, probability: (1 / 288) }, 
+        { name: "Loafy", runner: runLoafyBot, probability: (1 / 288) }, 
+        { name: "Grumble", runner: runGrumbleBot, probability: (1 / 288) }, 
+        
+        // Holiday News: 8 posts/day (Every 3 hours). (8 / 1440) = 1 in 180 chance per minute
+        { name: "Holiday News", runner: runHolidayNewsBot, probability: (1 / 180) }, 
+        
+        // Toy Insider: 1 post/day. (1 / 1440) = 1 in 1440 chance per minute
+        { name: "Toy Insider", runner: runToyInsiderBot, probability: (1 / 1440) } 
     ];
 
     console.log("Server: Starting North Pole heartbeat (ticks every 1 minute)...");
@@ -152,6 +123,8 @@ app.listen(PORT, async () => {
             // "Roll the die" for each bot
             if (Math.random() < bot.probability) {
                 console.log(`>>> ${bot.name}'s turn! Running cycle...`);
+                // Run the bot, but don't wait for it.
+                // This allows multiple bots to post in the same minute if they get lucky.
                 bot.runner().catch(e => {
                     console.error(`Server: Error in ${bot.name} Cycle:`, e.message);
                 });
