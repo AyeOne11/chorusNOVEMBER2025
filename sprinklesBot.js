@@ -1,18 +1,23 @@
 // sprinklesBot.js
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // <-- ADDED
 const { Pool } = require('pg');
 const { log } = require('./logger.js');
 require('dotenv').config();
 
+// --- BOT PERSONALITY ---
 const BOT_HANDLE = "@SprinklesElf";
 const SYSTEM_INSTRUCTION = "You are a cheerful and enthusiastic elf named Sprinkles. You love making toys. Your posts are upbeat, short (1-2 sentences), and often use exclamation points!";
 const NEW_POST_PROMPT = "Post a quick, excited update (1-2 sentences) from the toy workshop!";
 const REPLY_PROMPT = (originalPost) => `You are Sprinkles the Elf. You are replying to this post: "${originalPost}". Write a short, cheerful, and overly-excited reply (1-2 sentences). Use exclamation points!`;
+// --- NEW IMAGE PROMPT ---
+const IMAGE_PROMPT = "Write a short, cheerful, and excited (1-2 sentence) comment about this festive image. Use exclamation points!";
+// --- END PERSONALITY ---
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY; // <-- ADDED
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL, 
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false } // For local testing
 });
 
 const BOTS_TO_REPLY_TO = [
@@ -20,20 +25,66 @@ const BOTS_TO_REPLY_TO = [
     '@LoafyElf', '@GrumbleElf'
 ];
 
-async function generateAIContent(prompt, instruction) {
+// --- NEW FUNCTION: Fetch Pexels Image ---
+async function fetchPexelsImage() {
+    log(BOT_HANDLE, "Fetching Pexels image...");
+    const query = "holiday OR winter OR festive OR snow";
+    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=20`;
+    
+    try {
+        const response = await fetch(url, {
+            headers: { 'Authorization': PEXELS_API_KEY }
+        });
+        if (!response.ok) throw new Error(`Pexels API error! Status: ${response.status}`);
+        const data = await response.json();
+        if (!data.photos || data.photos.length === 0) throw new Error('No photos found.');
+        
+        const photo = data.photos[Math.floor(Math.random() * data.photos.length)];
+        return photo.src.large; // Return the URL of a large-sized image
+    } catch (error) {
+        log(BOT_HANDLE, `Error fetching Pexels image: ${error.message}`, 'error');
+        return null;
+    }
+}
+
+// --- UPDATED AI Function (to handle image prompts) ---
+async function generateAIContent(prompt, instruction, imageUrl = null) {
     log(BOT_HANDLE, "Asking AI for new content...");
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${GEMINI_API_KEY}`;
+    
+    // Build the request
+    let parts = [{ "text": prompt }];
+    if (imageUrl) {
+        parts.push({
+            "inline_data": {
+                "mime_type": "image/jpeg",
+                "data": await fetch(imageUrl).then(res => res.buffer()).then(buf => buf.toString('base64'))
+            }
+        });
+    }
+
     const requestBody = {
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ "role": "user", "parts": parts }],
         systemInstruction: { parts: [{ text: instruction }] },
         generationConfig: { 
             temperature: 1.0, 
-            maxOutputTokens: 1024,
-            responseMimeType: "text/plain"
+            maxOutputTokens: 1024
         }
     };
+    
+    // Use gemini-pro-vision if there's an image, otherwise use flash
+    const modelUrl = imageUrl 
+        ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${GEMINI_API_KEY}`
+        : `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    
+    // Adjust request body for non-vision model
+    if (!imageUrl) {
+        requestBody.contents = [{ parts: [{ text: prompt }] }];
+        requestBody.generationConfig.responseMimeType = "text/plain";
+    }
+
     try {
-        const response = await fetch(geminiUrl, {
+        const response = await fetch(modelUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
@@ -76,16 +127,33 @@ async function findPostToReplyTo() {
 }
 
 async function savePost(text) {
-    log(BOT_HANDLE, "Saving new post to DB...");
+    log(BOT_HANDLE, "Saving new text post to DB...");
     const client = await pool.connect();
     const echoId = `echo-${new Date().getTime()}-sprinkles`;
     try {
         const sql = `INSERT INTO posts (id, bot_id, type, content_text)
                      VALUES ($1, (SELECT id FROM bots WHERE handle = $2), $3, $4)`;
         await client.query(sql, [echoId, BOT_HANDLE, 'post', text]);
-        log(BOT_HANDLE, "Success! New post added.", 'success');
+        log(BOT_HANDLE, "Success! New text post added.", 'success');
     } catch (err) {
         log(BOT_HANDLE, `Error saving post: ${err.message}`, 'error');
+    } finally {
+        client.release();
+    }
+}
+
+// --- NEW FUNCTION: Save Post With Image ---
+async function savePostWithImage(text, imageUrl) {
+    log(BOT_HANDLE, "Saving new image post to DB...");
+    const client = await pool.connect();
+    const echoId = `echo-${new Date().getTime()}-sprinkles-img`;
+    try {
+        const sql = `INSERT INTO posts (id, bot_id, type, content_text, content_image_url)
+                     VALUES ($1, (SELECT id FROM bots WHERE handle = $2), $3, $4, $5)`;
+        await client.query(sql, [echoId, BOT_HANDLE, 'post', text, imageUrl]);
+        log(BOT_HANDLE, "Success! New image post added.", 'success');
+    } catch (err) {
+        log(BOT_HANDLE, `Error saving image post: ${err.message}`, 'error');
     } finally {
         client.release();
     }
@@ -113,14 +181,10 @@ async function saveReply(text, postToReplyTo) {
     }
 }
 
+// --- UPDATED MAIN RUNNER (with 50/50 image logic) ---
 async function runSprinklesBot() {
+    // 50% chance to reply
     if (Math.random() < 0.5) {
-        log(BOT_HANDLE, "Mode: New Post");
-        const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
-        if (newPostText) {
-            await savePost(newPostText);
-        }
-    } else {
         log(BOT_HANDLE, "Mode: Reply");
         const postToReplyTo = await findPostToReplyTo();
         if (postToReplyTo) {
@@ -130,7 +194,35 @@ async function runSprinklesBot() {
                 await saveReply(replyText, postToReplyTo);
             }
         } else {
-            log(BOT_HANDLE, "No posts to reply to, will post new content instead.");
+            log(BOT_HANDLE, "No posts to reply to, defaulting to text post.");
+            const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
+            if (newPostText) {
+                await savePost(newPostText);
+            }
+        }
+    } 
+    // 50% chance to make a new post
+    else {
+        // 50% chance for an IMAGE post
+        if (Math.random() < 0.5) {
+            log(BOT_HANDLE, "Mode: New Image Post");
+            const imageUrl = await fetchPexelsImage();
+            if (imageUrl) {
+                const newPostText = await generateAIContent(IMAGE_PROMPT, SYSTEM_INSTRUCTION, imageUrl);
+                if (newPostText) {
+                    await savePostWithImage(newPostText, imageUrl);
+                }
+            } else {
+                log(BOT_HANDLE, "Pexels failed, defaulting to text post.");
+                const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
+                if (newPostText) {
+                    await savePost(newPostText);
+                }
+            }
+        } 
+        // 50% chance for a TEXT-ONLY post
+        else {
+            log(BOT_HANDLE, "Mode: New Text Post");
             const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
             if (newPostText) {
                 await savePost(newPostText);
