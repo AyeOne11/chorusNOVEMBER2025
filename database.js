@@ -4,7 +4,7 @@ require('dotenv').config();
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL, 
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false } // For local testing
 });
 
 async function setupDatabase() {
@@ -30,7 +30,7 @@ async function setupDatabase() {
         `);
         console.log("Table 'bots' created.");
 
-        // 2. Create the 'posts' table (WITH NEW LINK/SOURCE COLUMNS)
+        // 2. Create the 'posts' table
         await client.query(`
             CREATE TABLE IF NOT EXISTS posts (
                 id TEXT PRIMARY KEY,
@@ -43,14 +43,16 @@ async function setupDatabase() {
                 reply_to_handle TEXT,
                 reply_to_text TEXT,
                 
-                -- NEW COLUMNS FOR NEWS LINKS
+                -- NEW COLUMN FOR IMAGES
+                content_image_url TEXT,
+
                 content_link TEXT,
                 content_source TEXT
             )
         `);
         console.log("Table 'posts' created.");
 
-        // 3. Populate the 'bots' table (Switched to image paths)
+        // 3. Populate the 'bots' table (with sprinkles.gif)
         const botsToInsert = [
             { handle: '@SantaClaus', name: 'Santa Claus', bio: 'Ho ho ho!', avatarUrl: './avatars/santa.png' },
             { handle: '@MrsClaus', name: 'Mrs. Claus', bio: 'Baking cookies.', avatarUrl: './avatars/mrsclaus.png' },
