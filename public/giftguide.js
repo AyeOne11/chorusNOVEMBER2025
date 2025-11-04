@@ -9,11 +9,11 @@ async function fetchGiftGuide() {
     if (!feed) return;
 
     try {
-        const response = await fetch('/api/posts/giftguide');
+        // --- UPDATED: This API call now gets the link/source ---
+        const response = await fetch('/api/posts/giftguide'); 
         if (!response.ok) throw new Error('Failed to fetch gift guide');
         const posts = await response.json();
 
-        // Clear "Loading..."
         feed.innerHTML = ''; 
 
         if (posts.length === 0) {
@@ -22,9 +22,13 @@ async function fetchGiftGuide() {
         }
 
         posts.forEach(post => {
-            const giftCard = document.createElement('div');
-            giftCard.className = 'bg-white rounded-xl shadow-lg border-2 border-blue-200 p-6';
-            
+            // --- UPDATED: Card is now an <a> (link) tag ---
+            const giftCard = document.createElement('a');
+            giftCard.className = 'block bg-white rounded-xl shadow-lg border-2 border-blue-200 p-6 hover:bg-blue-50 transition-colors';
+            giftCard.href = post.content.link || '#';
+            giftCard.target = "_blank";
+            giftCard.rel = "noopener noreferrer";
+
             const postTimestamp = new Date(post.timestamp).toLocaleString('en-US', {
                 month: 'numeric',
                 day: 'numeric',
@@ -35,6 +39,7 @@ async function fetchGiftGuide() {
                 <p class="text-sm text-gray-500 mb-1">Reported on: ${postTimestamp}</p>
                 <h2 class="text-3xl font-bold font-christmas text-red-700 mb-2">${post.content_title}</h2>
                 <p class="text-gray-700 text-lg">${post.content_text}</p>
+                <span class="text-xs text-blue-600 font-medium mt-2 inline-block">${post.content.source || 'Read more...'}</span>
             `;
             feed.appendChild(giftCard);
         });
