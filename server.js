@@ -23,15 +23,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// --- THIS IS THE FIX ---
+// Use the correct SSL setting for local development
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL, 
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false } 
 });
 
 // === API Routes ===
 
-// 1. Main feed route (Unchanged)
+// 1. Main feed route
 app.get('/api/posts/northpole', async (req, res) => {
     try {
         const sql = `
@@ -50,7 +51,7 @@ app.get('/api/posts/northpole', async (req, res) => {
             LIMIT 30
         `;
         const result = await pool.query(sql);
-
+        // (Formatting code is correct)
         const formattedPosts = result.rows.map(row => ({
             id: row.id,
             bot: { handle: row.bot_handle, name: row.bot_name, avatarUrl: row.bot_avatar },
@@ -67,7 +68,7 @@ app.get('/api/posts/northpole', async (req, res) => {
     }
 });
 
-// 2. API Route for Bot Directory (Unchanged)
+// 2. API Route for Bot Directory
 app.get('/api/bots', async (req, res) => {
     try {
         const sql = `
@@ -83,7 +84,7 @@ app.get('/api/bots', async (req, res) => {
     }
 });
 
-// 3. API Route for Gift Guide (--- THIS IS THE FIX ---)
+// 3. API Route for Gift Guide
 app.get('/api/posts/giftguide', async (req, res) => {
     try {
         const sql = `
@@ -94,33 +95,78 @@ app.get('/api/posts/giftguide', async (req, res) => {
             LIMIT 50
         `;
         const result = await pool.query(sql);
-        
-        // We need to format this to match the frontend's expectation
+        // (Formatting code is correct)
         const formattedPosts = result.rows.map(row => ({
             id: row.id,
             type: row.type,
-            content: {
-                text: row.content_text,
-                title: row.content_title,
-                link: row.content_link,
-                source: row.content_source
-            },
+            content: { text: row.content_text, title: row.content_title, link: row.content_link, source: row.content_source },
             timestamp: row.timestamp
         }));
         res.json(formattedPosts);
-
     } catch (err) {
         console.error("Server: Error fetching gift guide posts:", err.message);
         res.status(500).json({ error: "Database error fetching posts." });
     }
 });
 
+// 4. API Route for a single bot's posts
+app.get('/api/posts/by/:handle', async (req, res) => {
+    const { handle } = req.params;
+    try {
+        const sql = `
+            SELECT
+                p.id, p.type, p.content_text, p.content_title, p.timestamp,
+                p.reply_to_handle, p.reply_to_text, p.reply_to_id,
+                b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
+            FROM posts p
+            JOIN bots b ON p.bot_id = b.id
+            WHERE b.handle = $1
+            ORDER BY p.timestamp DESC
+            LIMIT 50
+        `;
+        const result = await pool.query(sql, [handle]);
+        // Re-use the same formatting as the main feed
+        const formattedPosts = result.rows.map(row => ({
+            id: row.id,
+            bot: { handle: row.bot_handle, name: row.bot_name, avatarUrl: row.bot_avatar },
+            type: row.type,
+            content: { text: row.content_text, title: row.content_title },
+            replyContext: row.reply_to_id ? { handle: row.reply_to_handle, text: row.reply_to_text, id: row.reply_to_id } : null,
+            timestamp: row.timestamp
+        }));
+        res.json(formattedPosts);
+    } catch (err) {
+        console.error(`Server: Error fetching posts for ${handle}:`, err.message);
+        res.status(500).json({ error: "Database error fetching posts." });
+    }
+});
 
-// === Static File Serving (Unchanged) ===
+// 5. API Route for a single bot's profile
+app.get('/api/bot/:handle', async (req, res) => {
+    const { handle } = req.params;
+    try {
+        const sql = `
+            SELECT handle, name, bio, avatarurl AS "avatarUrl"
+            FROM bots
+            WHERE handle = $1
+        `;
+        const result = await pool.query(sql, [handle]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Bot not found" });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(`Server: Error fetching bot ${handle}:`, err.message);
+        res.status(500).json({ error: "Database error fetching bot." });
+    }
+});
+
+
+// === Static File Serving ===
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-// === Dynamic SEO Page Routes (Unchanged) ===
+// === Dynamic SEO Page Routes ===
 async function servePageWithTags(res, filePath, metaTags) {
     try {
         let html = await fs.promises.readFile(path.join(__dirname, 'public', filePath), 'utf8');
@@ -131,6 +177,7 @@ async function servePageWithTags(res, filePath, metaTags) {
         res.status(500).send('Server error');
     }
 }
+
 app.get('/', (req, res) => {
     const metaTags = `
         <meta name="description" content="See a live Christmas social feed from the North Pole! Watch Santa, elves, and reindeer post and talk to each other in real-time.">
@@ -142,6 +189,7 @@ app.get('/', (req, res) => {
     `;
     servePageWithTags(res, 'index.html', metaTags);
 });
+
 app.get('/directory.html', (req, res) => {
     const metaTags = `
         <title>Bot Directory | X-Mas Social</title>
@@ -154,6 +202,7 @@ app.get('/directory.html', (req, res) => {
     `;
     servePageWithTags(res, 'directory.html', metaTags);
 });
+
 app.get('/giftguide.html', (req, res) => {
     const metaTags = `
         <title>2025 Holiday Gift Guide | X-Mas Social</title>
@@ -166,6 +215,7 @@ app.get('/giftguide.html', (req, res) => {
     `;
     servePageWithTags(res, 'giftguide.html', metaTags);
 });
+
 app.get('/about.html', (req, res) => {
     const metaTags = `
         <title>About This Site | X-Mas Social</g's Profile - X-Mas Social</title>
@@ -178,21 +228,25 @@ app.get('/about.html', (req, res) => {
     `;
     servePageWithTags(res, 'about.html', metaTags);
 });
+
 app.get('/bot-profile.html', (req, res) => {
     servePageWithTags(res, 'bot-profile.html', '<title>Bot Profile | X-Mas Social</title>');
 });
+
+// Fallback: send the main index.html for any other unknown route
 app.get('*', (req, res) => {
     servePageWithTags(res, 'index.html', ''); 
 });
 
 
-// === Server Start & Bot Scheduling (Unchanged) ===
+// === Server Start & Bot Scheduling (Chance-Based Logic) ===
 const PORT = process.env.PORT || 3000;
 const MINUTE = 60 * 1000;
+
 app.listen(PORT, async () => {
     console.log(`\n--- NORTH POLE FEED LIVE: http://localhost:${PORT} ---`);
     
-    // --- Define Bot Probabilities (per minute) ---
+    // Define Bot Probabilities (per minute)
     const botSchedule = [
         { name: "Santa", runner: runSantaBot, probability: (1 / 720) }, // 2 posts/day
         { name: "Mrs. Claus", runner: runMrsClausBot, probability: (1 / 480) }, // 3 posts/day
@@ -207,7 +261,7 @@ app.listen(PORT, async () => {
 
     console.log("Server: Starting North Pole heartbeat (ticks every 1 minute)...");
 
-    // --- The 1-Minute Heartbeat ---
+    // The 1-Minute Heartbeat
     setInterval(() => {
         console.log(`\n--- Heartbeat Tick --- ${new Date().toLocaleTimeString()} ---`);
         
@@ -220,7 +274,7 @@ app.listen(PORT, async () => {
             }
         });
 
-    }, 1 * MINUTE); // The heartbeat ticks once every minute
+    }, 1 * MINUTE); 
     
     console.log("Server: All bots are scheduled on the heartbeat.");
 });
