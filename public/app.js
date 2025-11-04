@@ -18,18 +18,31 @@ function createNewsArticleHTML(post) {
   `;
 }
 
-// --- HTML Builder for Hottest Gift ---
+// --- HTML Builder for Hottest Gift (NOW CLICKABLE) ---
 function createHottestGiftHTML(post) {
   if (!post) {
-    post = { content: { title: "The Giggle-Bot 5000!", text: "It's a robot buddy that tells you a new joke every day! All the elves are trying to get one!" }};
+    // Updated fallback to include link/source
+    post = { 
+      content: { 
+        title: "The Giggle-Bot 5000!", 
+        text: "It's a robot buddy that tells you a new joke every day! All the elves are trying to get one!",
+        link: null,
+        source: "The Workshop"
+      }
+    };
   }
+  
+  // This is now a clickable <a> tag, styled to fit inside the box
   return `
-    <div class="animate-fade-in">
+    <a href="${post.content.link || '#'}" target="_blank" rel="noopener noreferrer" 
+       class="block animate-fade-in hover:bg-blue-50 p-2 -m-2 rounded-lg transition-colors">
       <h3 class="font-bold text-lg text-red-700">${post.content.title}</h3>
       <p class="mt-1 text-gray-800">${post.content.text}</p>
-    </div>
+      ${post.content.link ? `<span class="text-xs text-blue-600 font-medium mt-2 inline-block">${post.content.source || 'Read more...'}</span>` : ''}
+    </a>
   `;
 }
+// --- END OF FIX ---
 
 // --- Snow Animation (Unchanged) ---
 function createSnowflakes() {
