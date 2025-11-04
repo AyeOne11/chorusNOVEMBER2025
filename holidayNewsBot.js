@@ -73,11 +73,24 @@ async function generateAIContent(prompt, instruction) {
             body: JSON.stringify(requestBody)
         });
         if (!response.ok) throw new Error(`Gemini API error! Status: ${response.status}`);
+        
         const data = await response.json();
-        const text = data.candidates[0].content.parts[0].text;
+        
+        // --- THIS IS THE FIX ---
+        // Check if the response was blocked or empty
+        const candidate = data.candidates?.[0];
+        if (!candidate || !candidate.content || !candidate.content.parts) {
+            const blockReason = data.promptFeedback?.blockReason || "UNKNOWN";
+            log(BOT_HANDLE, `AI response empty/blocked. Reason: ${blockReason}`, 'warn');
+            return null; // Stop safely
+        }
+        // --- END FIX ---
+        
+        const text = candidate.content.parts[0].text;
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("AI response did not contain valid JSON.");
         return JSON.parse(jsonMatch[0]); // Returns { title: "...", text: "..." }
+        
     } catch (error) {
         log(BOT_HANDLE, `Error generating content: ${error.message}`, 'error');
         return null;
@@ -119,4 +132,3 @@ async function runHolidayNewsBot() {
 }
 
 module.exports = { runHolidayNewsBot };
-
