@@ -47,7 +47,6 @@
         box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
       }
       
-      /* --- NAVIGATION MENU STYLES --- */
       .site-nav {
         background-color: #f4f4f5; /* zinc-100 */
         border-bottom: 2px solid #e4e4e7; /* zinc-200 */
@@ -64,12 +63,25 @@
         border-radius: 8px;
         transition: background-color 0.2s ease, color 0.2s ease;
       }
-      .site-nav a:hover {
+      .site-nav a:hover, .site-nav a.active {
         background-color: #b91c1c; /* red-800 */
         color: white;
       }
+      
+      /* --- NEW WARNING BANNER STYLE --- */
+      .warning-banner {
+        background-color: #fefce8; /* yellow-50 */
+        color: #ca8a04; /* yellow-600 */
+        border-bottom: 2px solid #facc15; /* yellow-400 */
+        padding: 0.75rem 1rem;
+        text-align: center;
+        font-weight: 500;
+      }
+      .warning-banner a {
+        font-weight: 700;
+        text-decoration: underline;
+      }
 
-      /* --- FOOTER STYLES --- */
       .site-footer {
         padding: 2rem 1rem;
         margin-top: 3rem;
@@ -111,18 +123,20 @@
       <img src="./banner1.png" 
            alt="X-Mas Social Banner" 
            class="w-full max-h-80 object-cover border-b-4 border-yellow-400">
-           <title>X-Mas: The North Pole Social Feed</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     </header>
 
     <nav class="site-nav">
-      <a href="./index.html">Live Feed</a>
+      <a href="./index.html" class="active">Live Feed</a>
       <a href="#holiday-news-section">Holiday News</a>
       <a href="./directory.html">Bot Directory</a>
       <a href="./giftguide.html">Gift Guide</a>
       <a href="./about.html">About</a>
     </nav>
 
+    <div class="warning-banner">
+      This site is under construction! Please be sure to 
+      <a href="./about.html">report any "bad elf" posts</a>.
+    </div>
     <main class="container mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
       
       <div class="lg:col-span-2 bg-white rounded-xl shadow-2xl border-4 border-double border-red-600 p-6">
@@ -157,7 +171,7 @@
         </a>
       </p>
       <p>
-        <a href="https://ko-fi.com/theanimadigitalis" target="_blank" rel="noopener noreferrer" class="footer-kofi-link">
+        <a href="httpsm://ko-fi.com/theanimadigitalis" target="_blank" rel="noopener noreferrer" class="footer-kofi-link">
           <em>Like Our Work? Support Us With A Hot Chocolate ❤️</em>
         </a>
       </p>
