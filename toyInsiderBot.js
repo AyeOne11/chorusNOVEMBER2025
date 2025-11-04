@@ -2,38 +2,38 @@
 const fetch = require('node-fetch');
 const { Pool } = require('pg');
 const { log } = require('./logger.js');
-const RssParser = require('rss-parser'); // <-- ADDED
-const parser = new RssParser(); // <-- ADDED
+const RssParser = require('rss-parser');
+const parser = new RssParser();
 require('dotenv').config();
 
 // --- BOT PERSONALITY ---
 const BOT_HANDLE = "@ToyInsiderElf";
-const SYSTEM_INSTRUCTION = "You are a 'Toy Insider' elf, reporting from Santa's workshop. You are very excited and kid-friendly. You are rewriting a real-world tech/gadget article to sound like a toy report for Santa's list.";
+const SYSTEM_INSTRUCTION = "You are a 'Toy Insider' elf... (rest of prompt is correct)";
 const REWRITE_PROMPT = (title, snippet) => `Rewrite this tech/gadget news item as a super exciting, kid-friendly "Hottest Gift" report. Make it sound like it's a new toy for Santa's list.
 Original Title: "${title}"
 Original Snippet: "${snippet}"
 
-Response MUST be ONLY valid JSON: { "title": "Your new, fun toy name", "text": "Your 1-2 sentence kid-friendly description" }`;
+Response MUST be ONLY a valid JSON object with the keys "toy_name" and "toy_description".
+{ "toy_name": "Your new, fun toy name", "toy_description": "Your 1-2 sentence kid-friendly description" }`;
 const POST_TYPE = "hottest_gift";
 // --- END PERSONALITY ---
 
-// --- NEW: Tech/Gadget Feeds ---
-const GADGET_FEEDS = [
-    'https://www.wired.com/feed/rss',
-    'https://www.theverge.com/rss/index.xml',
-    'https://techcrunch.com/feed/'
+const TOY_FEEDS = [
+    'https://www.thetoyinsider.com/feed/',
+    'https://toybook.com/feed/',
+    'https://www.cnet.com/rss/gadgets/'
 ];
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL, 
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false } // Correct for local testing
 });
 
-// --- NEW: Fetch Real Gadget News ---
 async function fetchGadgetInspiration() {
     log(BOT_HANDLE, "Fetching gadget news from RSS for inspiration...");
-    const feedUrl = GADGET_FEEDS[Math.floor(Math.random() * GADGET_FEEDS.length)];
+    const feedUrl = TOY_FEEDS[Math.floor(Math.random() * TOY_FEEDS.length)];
     try {
         const feed = await parser.parseURL(feedUrl);
         const article = feed.items[Math.floor(Math.random() * 10)]; 
@@ -91,17 +91,30 @@ async function generateAIContent(prompt, instruction) {
 
 async function savePost(content, inspiration) {
     log(BOT_HANDLE, "Saving new post to DB...");
+    
+    // --- THIS IS THE DEBUGGER ---
+    // This will print the exact object to your terminal
+    log(BOT_HANDLE, `Inspecting AI Response: ${JSON.stringify(content, null, 2)}`);
+    // --- END DEBUGGER ---
+
     const client = await pool.connect();
     const echoId = `echo-${new Date().getTime()}-toy`;
+    
+    // Check for any possible key the AI might have used
+    const postTitle = content.toy_name || content.title || content.headline || inspiration.title; // Use original title as a fallback
+    const postText = content.toy_description || content.text || content.summary || "This new toy is the hottest gift of the season!";
+
     try {
-        // --- UPDATED: Now saves the link and source ---
         const sql = `INSERT INTO posts (id, bot_id, type, content_text, content_title, content_link, content_source)
                      VALUES ($1, (SELECT id FROM bots WHERE handle = $2), $3, $4, $5, $6, $7)`;
+        
         await client.query(sql, [
             echoId, BOT_HANDLE, POST_TYPE, 
-            content.text, content.title,
+            postText,
+            postTitle,
             inspiration.link, inspiration.source
         ]);
+
         log(BOT_HANDLE, "Success! New post added.", 'success');
     } catch (err) {
         log(BOT_HANDLE, `Error saving post: ${err.message}`, 'error');
@@ -113,7 +126,7 @@ async function savePost(content, inspiration) {
 async function runToyInsiderBot() {
     log(BOT_HANDLE, "Mode: New Post");
     const inspiration = await fetchGadgetInspiration();
-    if (!inspiration) return; // Failed to get RSS
+    if (!inspiration) return; 
 
     const newPostContent = await generateAIContent(
         REWRITE_PROMPT(inspiration.title, inspiration.snippet), 
