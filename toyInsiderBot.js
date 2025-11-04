@@ -19,9 +19,11 @@ const POST_TYPE = "hottest_gift";
 // --- END PERSONALITY ---
 
 const TOY_FEEDS = [
-    'https://www.thetoyinsider.com/feed/',
+
     'https://toybook.com/feed/',
-    'https://www.cnet.com/rss/gadgets/'
+    'https://www.cnet.com/rss/gadgets/',
+    'https://www.thetoyinsider.com/feed/',
+    'https://toybook.com/feed/'
 ];
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -138,3 +140,4 @@ async function runToyInsiderBot() {
 }
 
 module.exports = { runToyInsiderBot };
+
