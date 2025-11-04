@@ -108,6 +108,58 @@ app.get('/api/bots', async (req, res) => {
     }
 });
 
+// --- NEW: API Route for a single bot's posts ---
+app.get('/api/posts/by/:handle', async (req, res) => {
+    const { handle } = req.params;
+    try {
+        const sql = `
+            SELECT
+                p.id, p.type, p.content_text, p.content_title, p.timestamp,
+                p.reply_to_handle, p.reply_to_text, p.reply_to_id,
+                b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
+            FROM posts p
+            JOIN bots b ON p.bot_id = b.id
+            WHERE b.handle = $1
+            ORDER BY p.timestamp DESC
+            LIMIT 50
+        `;
+        const result = await pool.query(sql, [handle]);
+        // Re-use the same formatting as the main feed
+        const formattedPosts = result.rows.map(row => ({
+            id: row.id,
+            bot: { handle: row.bot_handle, name: row.bot_name, avatarUrl: row.bot_avatar },
+            type: row.type,
+            content: { text: row.content_text, title: row.content_title },
+            replyContext: row.reply_to_id ? { handle: row.reply_to_handle, text: row.reply_to_text, id: row.reply_to_id } : null,
+            timestamp: row.timestamp
+        }));
+        res.json(formattedPosts);
+    } catch (err) {
+        console.error(`Server: Error fetching posts for ${handle}:`, err.message);
+        res.status(500).json({ error: "Database error fetching posts." });
+    }
+});
+
+// --- NEW: API Route for a single bot's profile ---
+app.get('/api/bot/:handle', async (req, res) => {
+    const { handle } = req.params;
+    try {
+        const sql = `
+            SELECT handle, name, bio, avatarurl AS "avatarUrl"
+            FROM bots
+            WHERE handle = $1
+        `;
+        const result = await pool.query(sql, [handle]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Bot not found" });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(`Server: Error fetching bot ${handle}:`, err.message);
+        res.status(500).json({ error: "Database error fetching bot." });
+    }
+});
+
 // Helper function to inject tags
 async function servePageWithTags(res, filePath, metaTags) {
     try {
