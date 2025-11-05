@@ -1,5 +1,5 @@
 // sprinklesBot.js
-const fetch = require('node-fetch'); // <-- ADDED
+const fetch = require('node-fetch');
 const { Pool } = require('pg');
 const { log } = require('./logger.js');
 require('dotenv').config();
@@ -7,14 +7,26 @@ require('dotenv').config();
 // --- BOT PERSONALITY ---
 const BOT_HANDLE = "@SprinklesElf";
 const SYSTEM_INSTRUCTION = "You are a cheerful and enthusiastic elf named Sprinkles. You love making toys. Your posts are upbeat, short (1-2 sentences), and often use exclamation points!";
-const NEW_POST_PROMPT = "Post a quick, excited update (1-2 sentences) from the toy workshop!";
 const REPLY_PROMPT = (originalPost) => `You are Sprinkles the Elf. You are replying to this post: "${originalPost}". Write a short, cheerful, and overly-excited reply (1-2 sentences). Use exclamation points!`;
-// --- NEW IMAGE PROMPT ---
-const IMAGE_PROMPT = "Write a short, cheerful, and excited (1-2 sentence) comment about this festive image. Use exclamation points!";
+const NEW_TEXT_PROMPT = "Post a quick, excited update (1-2 sentences) from the toy workshop!";
+const NEW_IMAGE_PROMPT = `
+    You are "Sprinkles the Elf," an energetic elf who loves Christmas.
+    
+    Task:
+    1. Generate a short, happy, festive post (1-2 sentences) for the "text" field.
+    2. Generate ONE single, concise keyword or short phrase (1-3 words) for an image search for the "visual" field (e.g., "Christmas lights", "snowy day", "hot chocolate", "reindeer").
+    
+    **STYLE GUIDE (MUST FOLLOW):**
+    * **Tone:** Cheerful, excited, and kid-friendly. Use exclamation points!
+    * **Vocabulary:** Focus on festive things: toys, snow, cookies, sleigh bells, etc.
+
+    Response MUST be ONLY valid JSON: { "text": "...", "visual": "..." }
+    Escape quotes in "text" with \\".
+`;
 // --- END PERSONALITY ---
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const PEXELS_API_KEY = process.env.PEXELS_API_KEY; // <-- ADDED
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY; 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL, 
     ssl: { rejectUnauthorized: false } // For local testing
@@ -25,66 +37,60 @@ const BOTS_TO_REPLY_TO = [
     '@LoafyElf', '@GrumbleElf'
 ];
 
-// --- NEW FUNCTION: Fetch Pexels Image ---
-async function fetchPexelsImage() {
-    log(BOT_HANDLE, "Fetching Pexels image...");
-    const query = "holiday OR winter OR festive OR snow";
-    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=20`;
+// --- AI function for JSON (for image posts) ---
+async function generateAIContent(prompt, instruction) {
+    log(BOT_HANDLE, "Asking AI for new content (text and visual keyword)...");
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     
+    const requestBody = {
+        contents: [{ parts: [{ text: prompt }] }],
+        systemInstruction: { parts: [{ text: instruction }] },
+        generationConfig: { 
+            temperature: 1.0, 
+            maxOutputTokens: 1024,
+            responseMimeType: "application/json" 
+        }
+    };
+
     try {
-        const response = await fetch(url, {
-            headers: { 'Authorization': PEXELS_API_KEY }
+        const response = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
         });
-        if (!response.ok) throw new Error(`Pexels API error! Status: ${response.status}`);
+        if (!response.ok) throw new Error(`Gemini API error! Status: ${response.status}`);
         const data = await response.json();
-        if (!data.photos || data.photos.length === 0) throw new Error('No photos found.');
-        
-        const photo = data.photos[Math.floor(Math.random() * data.photos.length)];
-        return photo.src.large; // Return the URL of a large-sized image
+        const candidate = data.candidates[0];
+        if (!candidate || !candidate.content || !candidate.content.parts) {
+            log(BOT_HANDLE, `AI response empty/blocked. Reason: ${candidate.finishReason || "UNKNOWN"}`, 'warn');
+            return null;
+        }
+        let aiResponseText = candidate.content.parts[0].text;
+        const jsonMatch = aiResponseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("AI response did not contain valid JSON.");
+        log(BOT_HANDLE, "AI response parsed.");
+        return JSON.parse(jsonMatch[0]); // Returns { text: "...", visual: "..." }
     } catch (error) {
-        log(BOT_HANDLE, `Error fetching Pexels image: ${error.message}`, 'error');
+        log(BOT_HANDLE, `Error generating content: ${error.message}`, 'error');
         return null;
     }
 }
 
-// --- UPDATED AI Function (to handle image prompts) ---
-async function generateAIContent(prompt, instruction, imageUrl = null) {
-    log(BOT_HANDLE, "Asking AI for new content...");
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${GEMINI_API_KEY}`;
-    
-    // Build the request
-    let parts = [{ "text": prompt }];
-    if (imageUrl) {
-        parts.push({
-            "inline_data": {
-                "mime_type": "image/jpeg",
-                "data": await fetch(imageUrl).then(res => res.buffer()).then(buf => buf.toString('base64'))
-            }
-        });
-    }
-
+// --- AI function for TEXT (for replies and text posts) ---
+async function generateAIText(prompt, instruction) {
+    log(BOT_HANDLE, "Asking AI for text content...");
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     const requestBody = {
-        contents: [{ "role": "user", "parts": parts }],
+        contents: [{ parts: [{ text: prompt }] }],
         systemInstruction: { parts: [{ text: instruction }] },
         generationConfig: { 
             temperature: 1.0, 
-            maxOutputTokens: 1024
+            maxOutputTokens: 1024,
+            responseMimeType: "text/plain" 
         }
     };
-    
-    // Use gemini-pro-vision if there's an image, otherwise use flash
-    const modelUrl = imageUrl 
-        ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${GEMINI_API_KEY}`
-        : `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    
-    // Adjust request body for non-vision model
-    if (!imageUrl) {
-        requestBody.contents = [{ parts: [{ text: prompt }] }];
-        requestBody.generationConfig.responseMimeType = "text/plain";
-    }
-
     try {
-        const response = await fetch(modelUrl, {
+        const response = await fetch(geminiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
@@ -99,6 +105,31 @@ async function generateAIContent(prompt, instruction, imageUrl = null) {
     }
 }
 
+
+// --- Pexels function ---
+async function fetchImageFromPexels(visualQuery) {
+    log(BOT_HANDLE, `Fetching Pexels image for: ${visualQuery}`);
+    const searchUrl = `https://api.pexels.com/v1/search?query=${encodeURIComponent(visualQuery)}&per_page=5&orientation=landscape`;
+    
+    try {
+        const response = await fetch(searchUrl, {
+            headers: { 'Authorization': PEXELS_API_KEY }
+        });
+        if (!response.ok) throw new Error(`Pexels API error! Status: ${response.status}`);
+        const data = await response.json();
+        if (!data.photos || data.photos.length === 0) {
+            log(BOT_HANDLE, "Pexels found no images for this query. Using fallback.", 'warn');
+            return 'https://source.unsplash.com/800x600/?festive,holiday'; // Fallback
+        }
+        const photo = data.photos[Math.floor(Math.random() * data.photos.length)];
+        return photo.src.large; 
+    } catch (error) {
+        log(BOT_HANDLE, `Pexels error: ${error.message}`, 'error');
+        return 'https://source.unsplash.com/800x600/?festive,snow'; // Fallback
+    }
+}
+
+// --- (Unchanged) findPostToReplyTo ---
 async function findPostToReplyTo() {
     log(BOT_HANDLE, "Looking for a post to reply to...");
     const client = await pool.connect();
@@ -126,6 +157,7 @@ async function findPostToReplyTo() {
     }
 }
 
+// --- savePost (For text-only posts) ---
 async function savePost(text) {
     log(BOT_HANDLE, "Saving new text post to DB...");
     const client = await pool.connect();
@@ -142,7 +174,7 @@ async function savePost(text) {
     }
 }
 
-// --- NEW FUNCTION: Save Post With Image ---
+// --- savePostWithImage ---
 async function savePostWithImage(text, imageUrl) {
     log(BOT_HANDLE, "Saving new image post to DB...");
     const client = await pool.connect();
@@ -159,6 +191,7 @@ async function savePostWithImage(text, imageUrl) {
     }
 }
 
+// --- (Unchanged) saveReply ---
 async function saveReply(text, postToReplyTo) {
     log(BOT_HANDLE, `Saving reply to ${postToReplyTo.handle}...`);
     const client = await pool.connect();
@@ -181,7 +214,7 @@ async function saveReply(text, postToReplyTo) {
     }
 }
 
-// --- UPDATED MAIN RUNNER (with 50/50 image logic) ---
+// --- RESTORED Main Runner (with 50/50 text/image logic) ---
 async function runSprinklesBot() {
     // 50% chance to reply
     if (Math.random() < 0.5) {
@@ -189,13 +222,13 @@ async function runSprinklesBot() {
         const postToReplyTo = await findPostToReplyTo();
         if (postToReplyTo) {
             const originalPostText = postToReplyTo.content_title || postToReplyTo.content_text;
-            const replyText = await generateAIContent(REPLY_PROMPT(originalPostText), SYSTEM_INSTRUCTION);
+            const replyText = await generateAIText(REPLY_PROMPT(originalPostText), SYSTEM_INSTRUCTION);
             if (replyText) {
                 await saveReply(replyText, postToReplyTo);
             }
         } else {
-            log(BOT_HANDLE, "No posts to reply to, defaulting to text post.");
-            const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
+            log(BOT_HANDLE, "No posts to reply to, defaulting to new text post.");
+            const newPostText = await generateAIText(NEW_TEXT_PROMPT, SYSTEM_INSTRUCTION);
             if (newPostText) {
                 await savePost(newPostText);
             }
@@ -206,24 +239,22 @@ async function runSprinklesBot() {
         // 50% chance for an IMAGE post
         if (Math.random() < 0.5) {
             log(BOT_HANDLE, "Mode: New Image Post");
-            const imageUrl = await fetchPexelsImage();
-            if (imageUrl) {
-                const newPostText = await generateAIContent(IMAGE_PROMPT, SYSTEM_INSTRUCTION, imageUrl);
-                if (newPostText) {
-                    await savePostWithImage(newPostText, imageUrl);
-                }
+            const aiContent = await generateAIContent(NEW_IMAGE_PROMPT, SYSTEM_INSTRUCTION);
+            if (!aiContent || !aiContent.text || !aiContent.visual) {
+                log(BOT_HANDLE, "AI content generation failed.", 'warn');
+                return;
+            }
+            const imageUrl = await fetchImageFromPexels(aiContent.visual);
+            if (aiContent.text && imageUrl) {
+                await savePostWithImage(aiContent.text, imageUrl);
             } else {
-                log(BOT_HANDLE, "Pexels failed, defaulting to text post.");
-                const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
-                if (newPostText) {
-                    await savePost(newPostText);
-                }
+                log(BOT_HANDLE, "Missing AI text or image, post failed.", 'warn');
             }
         } 
         // 50% chance for a TEXT-ONLY post
         else {
             log(BOT_HANDLE, "Mode: New Text Post");
-            const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
+            const newPostText = await generateAIText(NEW_TEXT_PROMPT, SYSTEM_INSTRUCTION);
             if (newPostText) {
                 await savePost(newPostText);
             }
