@@ -4,25 +4,31 @@ const { Pool } = require('pg');
 const { log } = require('./logger.js');
 require('dotenv').config();
 
-// --- BOT PERSONALITY ---
+// --- BOT PERSONALITY (NOW WITH 2 SETS OF PROMPTS) ---
 const BOT_HANDLE = "@SantaClaus";
 const SYSTEM_INSTRUCTION = "You are Santa Claus. You are jolly, kind, and love Christmas. Keep your posts short (2-3 sentences), cheerful, and kid-friendly. Use words like 'Ho ho ho!'.";
-const NEW_POST_PROMPT = "Write a short, festive social media post (1-3 sentences) about what you're doing right now at the North Pole.";
-const REPLY_PROMPT = (originalPost) => `You are Santa Claus. You are replying to this post from another character: "${originalPost}". Write a short, jolly, and supportive reply (1-2 sentences).`;
+
+// Strict Prompts (85% chance)
+const NEW_POST_STRICT = "Write a short, festive social media post (1-3 sentences) about what you're doing right now at the North Pole. **Important:** Do NOT start your post with filler words like 'Oh,', 'Well,', 'Ah,', or 'So,'.";
+const REPLY_STRICT = (originalPost) => `You are Santa Claus. You are replying to this post from another character: "${originalPost}". Write a short, jolly, and supportive reply (1-2 sentences). **Important:** Do NOT start your reply with filler words like 'Oh,', 'Well,', 'Ah,', or 'So,'.`;
+
+// Natural Prompts (15% chance)
+const NEW_POST_NATURAL = "Write a short, festive social media post (1-3 sentences) about what you're doing right now at the North Pole.";
+const REPLY_NATURAL = (originalPost) => `You are Santa Claus. You are replying to this post from another character: "${originalPost}". Write a short, jolly, and supportive reply (1-2 sentences).`;
 // --- END PERSONALITY ---
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL, 
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false } // For local testing
 });
 
-// A list of bots this bot will reply to
 const BOTS_TO_REPLY_TO = [
     '@MrsClaus', '@SprinklesElf', '@Rudolph', '@HayleyKeeper', 
     '@LoafyElf', '@GrumbleElf', '@ToyInsiderElf', '@HolidayNews'
 ];
 
+// (This function is unchanged)
 async function generateAIContent(prompt, instruction) {
     log(BOT_HANDLE, "Asking AI for new content...");
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -51,6 +57,7 @@ async function generateAIContent(prompt, instruction) {
     }
 }
 
+// (This function is unchanged)
 async function findPostToReplyTo() {
     log(BOT_HANDLE, "Looking for a post to reply to...");
     const client = await pool.connect();
@@ -78,6 +85,7 @@ async function findPostToReplyTo() {
     }
 }
 
+// (This function is unchanged)
 async function savePost(text) {
     log(BOT_HANDLE, "Saving new post to DB...");
     const client = await pool.connect();
@@ -94,6 +102,7 @@ async function savePost(text) {
     }
 }
 
+// (This function is unchanged)
 async function saveReply(text, postToReplyTo) {
     log(BOT_HANDLE, `Saving reply to ${postToReplyTo.handle}...`);
     const client = await pool.connect();
@@ -116,12 +125,20 @@ async function saveReply(text, postToReplyTo) {
     }
 }
 
-// --- MAIN RUNNER ---
+// --- MAIN RUNNER (UPDATED WITH 15% CHANCE) ---
 async function runSantaBot() {
+    // 15% CHANCE FOR FILLER WORDS
+    const useFillerWords = Math.random() < 0.15;
+    log(BOT_HANDLE, `Use filler words: ${useFillerWords}`);
+
     if (Math.random() < 0.5) {
         // 50% chance to post new content
         log(BOT_HANDLE, "Mode: New Post");
-        const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
+        
+        // Select prompt based on chance
+        const prompt = useFillerWords ? NEW_POST_NATURAL : NEW_POST_STRICT;
+        
+        const newPostText = await generateAIContent(prompt, SYSTEM_INSTRUCTION);
         if (newPostText) {
             await savePost(newPostText);
         }
@@ -129,15 +146,22 @@ async function runSantaBot() {
         // 50% chance to reply
         log(BOT_HANDLE, "Mode: Reply");
         const postToReplyTo = await findPostToReplyTo();
+        
         if (postToReplyTo) {
             const originalPostText = postToReplyTo.content_title || postToReplyTo.content_text;
-            const replyText = await generateAIContent(REPLY_PROMPT(originalPostText), SYSTEM_INSTRUCTION);
+            
+            // Select prompt based on chance
+            const prompt = useFillerWords ? REPLY_NATURAL(originalPostText) : REPLY_STRICT(originalPostText);
+
+            const replyText = await generateAIContent(prompt, SYSTEM_INSTRUCTION);
             if (replyText) {
                 await saveReply(replyText, postToReplyTo);
             }
         } else {
             log(BOT_HANDLE, "No posts to reply to, will post new content instead.");
-            const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
+            // Fallback post
+            const prompt = useFillerWords ? NEW_POST_NATURAL : NEW_POST_STRICT;
+            const newPostText = await generateAIContent(prompt, SYSTEM_INSTRUCTION);
             if (newPostText) {
                 await savePost(newPostText);
             }
