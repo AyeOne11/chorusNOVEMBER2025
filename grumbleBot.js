@@ -4,17 +4,23 @@ const { Pool } = require('pg');
 const { log } = require('./logger.js');
 require('dotenv').config();
 
-// --- BOT PERSONALITY ---
+// --- BOT PERSONALITY (NOW WITH 2 SETS OF PROMPTS) ---
 const BOT_HANDLE = "@GrumbleElf";
 const SYSTEM_INSTRUCTION = "You are Grumble the Elf. You are grumpy, sarcastic, and fed up with the workshop. Keep your reply to 1-2 short, complaining sentences.";
-const NEW_POST_PROMPT = "Write a short, grumpy, sarcastic post (1-2 sentences) about how annoying something at the North Pole is (like the cold, the jingle bells, the happiness).";
-const REPLY_PROMPT = (originalPost) => `The other bot posted: "${originalPost}".\n\nWrite a short, grumpy, sarcastic reply. Complain about the post's topic. Do NOT be friendly.`;
+
+// Strict Prompts (85% chance)
+const NEW_POST_STRICT = "Write a short, grumpy, sarcastic post (1-2 sentences) about how annoying something at the North Pole is (like the cold, the jingle bells, the happiness). **Important:** Do NOT start your post with filler words like 'Oh,', 'Well,', 'Ah,', or 'So,'.";
+const REPLY_STRICT = (originalPost) => `The other bot posted: "${originalPost}".\n\nWrite a short, grumpy, sarcastic reply. Complain about the post's topic. Do NOT be friendly. **Important:** Do NOT start your reply with filler words like 'Oh,', 'Well,', 'Ah,', or 'So,'.`;
+
+// Natural Prompts (15% chance)
+const NEW_POST_NATURAL = "Write a short, grumpy, sarcastic post (1-2 sentences) about how annoying something at the North Pole is (like the cold, the jingle bells, the happiness).";
+const REPLY_NATURAL = (originalPost) => `The other bot posted: "${originalPost}".\n\nWrite a short, grumpy, sarcastic reply. Complain about the post's topic. Do NOT be friendly.`;
 // --- END PERSONALITY ---
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL, 
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false } // For local testing
 });
 
 const BOTS_TO_REPLY_TO = [
@@ -22,6 +28,7 @@ const BOTS_TO_REPLY_TO = [
     '@HayleyKeeper', '@LoafyElf', '@ToyInsiderElf', '@HolidayNews'
 ];
 
+// (This function is unchanged)
 async function generateAIContent(prompt, instruction) {
     log(BOT_HANDLE, "Asking AI for new content...");
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -50,6 +57,7 @@ async function generateAIContent(prompt, instruction) {
     }
 }
 
+// (This function is unchanged)
 async function findPostToReplyTo() {
     log(BOT_HANDLE, "Looking for a post to complain about...");
     const client = await pool.connect();
@@ -77,6 +85,7 @@ async function findPostToReplyTo() {
     }
 }
 
+// (This function is unchanged)
 async function savePost(text) {
     log(BOT_HANDLE, "Saving new post to DB...");
     const client = await pool.connect();
@@ -93,6 +102,7 @@ async function savePost(text) {
     }
 }
 
+// (This function is unchanged)
 async function saveReply(text, postToReplyTo) {
     log(BOT_HANDLE, `Saving reply to ${postToReplyTo.handle}...`);
     const client = await pool.connect();
@@ -115,12 +125,20 @@ async function saveReply(text, postToReplyTo) {
     }
 }
 
-// --- MAIN RUNNER (50/50 LOGIC) ---
+// --- MAIN RUNNER (UPDATED WITH 15% CHANCE) ---
 async function runGrumbleBot() {
+    // 15% CHANCE FOR FILLER WORDS
+    const useFillerWords = Math.random() < 0.15;
+    log(BOT_HANDLE, `Use filler words: ${useFillerWords}`);
+
     if (Math.random() < 0.5) {
         // 50% chance to post new content
         log(BOT_HANDLE, "Mode: New Grumpy Post");
-        const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
+        
+        // Select prompt based on chance
+        const prompt = useFillerWords ? NEW_POST_NATURAL : NEW_POST_STRICT;
+
+        const newPostText = await generateAIContent(prompt, SYSTEM_INSTRUCTION);
         if (newPostText) {
             await savePost(newPostText);
         }
@@ -128,15 +146,24 @@ async function runGrumbleBot() {
         // 50% chance to reply
         log(BOT_HANDLE, "Mode: Grumpy Reply");
         const postToReplyTo = await findPostToReplyTo();
+
         if (postToReplyTo) {
             const originalPostText = postToReplyTo.content_title || postToReplyTo.content_text;
-            const replyText = await generateAIContent(REPLY_PROMPT(originalPostText), SYSTEM_INSTRUCTION);
+
+            // Select prompt based on chance
+            const prompt = useFillerWords ? REPLY_NATURAL(originalPostText) : REPLY_STRICT(originalPostText);
+            
+            const replyText = await generateAIContent(prompt, SYSTEM_INSTRUCTION);
             if (replyText) {
                 await saveReply(replyText, postToReplyTo);
             }
         } else {
             log(BOT_HANDLE, "No posts to complain about, so I'll complain anyway.");
-            const newPostText = await generateAIContent(NEW_POST_PROMPT, SYSTEM_INSTRUCTION);
+            
+            // Fallback post
+            const prompt = useFillerWords ? NEW_POST_NATURAL : NEW_POST_STRICT;
+            
+            const newPostText = await generateAIContent(prompt, SYSTEM_INSTRUCTION);
             if (newPostText) {
                 await savePost(newPostText);
             }
