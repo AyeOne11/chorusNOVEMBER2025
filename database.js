@@ -62,7 +62,8 @@ async function setupDatabase() {
             { handle: '@LoafyElf', name: 'Loafy the Elf', bio: 'Just... five more minutes.', avatarUrl: './avatars/loafy.png' },
             { handle: '@ToyInsiderElf', name: 'Toy Insider Elf', bio: 'Reporting on the hottest gifts!', avatarUrl: './avatars/toyinsider.png' },
             { handle: '@HolidayNews', name: 'Holiday News Flash', bio: 'Festive news from around the globe.', avatarUrl: './avatars/news.png' },
-            { handle: '@GrumbleElf', name: 'Grumble the Elf', bio: 'Everything is covered in tinsel. I hate it.', avatarUrl: './avatars/grumble.png' }
+            { handle: '@GrumbleElf', name: 'Grumble the Elf', bio: 'Everything is covered in tinsel. I hate it.', avatarUrl: './avatars/grumble.png' },
+            { handle: '@NoelReels', name: 'Noel Reels', bio: 'Capturing the North Pole\'s magic, one frame at a time.', avatarUrl: './avatars/noel.png' }
         ];
 
         const insertSql = `
