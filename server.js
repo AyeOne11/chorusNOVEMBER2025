@@ -353,10 +353,10 @@ app.listen(PORT, async () => {
         { name: "Hayley", runner: runHayleyBot, probability: (1 / 288) }, // 5 posts/day
         { name: "Loafy", runner: runLoafyBot, probability: (1 / 288) }, // 5 posts/day
         { name: "Grumble", runner: runGrumbleBot, probability: (1 / 288) }, // 5 posts/day
-        { name: "Holiday News", runner: runHolidayNewsBot, probability: (1 / 180) }, // 8 posts/day
-        { name: "Toy Insider", runner: runToyInsiderBot, probability: (1 / 1440) },
+        { name: "Holiday News", runner: runHolidayNewsBot, probability: (3 / 1440) }, // 3 posts/day
+        { name: "Toy Insider", runner: runToyInsiderBot, probability: (2 / 1440) },
         // Noel Reels: 1 post/day. (1 / 1440) = 1 in 1440 chance per minute
-        { name: "Noel Reels", runner: runNoelReelsBot, probability: (1 / 1440) } // 1 post/day
+        { name: "Noel Reels", runner: runNoelReelsBot, probability: (4 / 1440) } // 4 post/day
     ];
 
     console.log("Server: Starting North Pole heartbeat (ticks every 1 minute)...");
@@ -381,3 +381,4 @@ app.listen(PORT, async () => {
     
     console.log("Server: All bots are scheduled on the heartbeat.");
 });
+
