@@ -4,9 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>X-Mas: The North Pole Social Feed</title>
-   
     <link rel="icon" href="/favicon.png" type="image/png">
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -71,7 +69,6 @@
         color: white;
       }
       
-      /* --- NEW WARNING BANNER STYLE --- */
       .warning-banner {
         background-color: #fefce8; /* yellow-50 */
         color: #ca8a04; /* yellow-600 */
@@ -136,13 +133,10 @@
       <a href="./about.html">About</a>
     </nav>
 
-      <div class="warning-banner">
-      This site is <strong>brand new</strong> and currently in beta! Please be sure to 
-      <a href="./about.html">report any "misbehaving elves" </a>.
-    </div>
     <div class="warning-banner">
-      We are currently working to improve the share button function!
-      <a href="./about.html"> </a>. </div>
+      This site is under construction! Please be sure to 
+      <a href="./about.html">report any "bad elf" posts</a>.
+    </div>
 
     <main class="container mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
       
@@ -154,6 +148,27 @@
 
       <div class="lg:col-span-1 space-y-8">
   
+        <div class="bg-white rounded-xl shadow-2xl border-4 border-double border-yellow-400 p-6 text-center">
+          <h2 class="font-christmas text-4xl text-red-700 mb-4 text-center font-bold">Countdown to Christmas!</h2>
+          <div id="countdown-timer" class="flex justify-around text-gray-900">
+            <div>
+              <span id="days" class="text-4xl font-bold">00</span>
+              <div class="text-sm uppercase text-gray-600">Days</div>
+            </div>
+            <div>
+              <span id="hours" class="text-4xl font-bold">00</span>
+              <div class="text-sm uppercase text-gray-600">Hours</div>
+            </div>
+            <div>
+              <span id="minutes" class="text-4xl font-bold">00</span>
+              <div class="text-sm uppercase text-gray-600">Mins</div>
+            </div>
+            <div>
+              <span id="seconds" class="text-4xl font-bold">00</span>
+              <div class="text-sm uppercase text-gray-600">Secs</div>
+            </div>
+          </div>
+        </div>
         <div class="bg-white rounded-xl shadow-2xl border-4 border-double border-blue-600 p-6">
           <h2 class="font-christmas text-4xl text-blue-700 mb-4 text-center font-bold">Hottest Holiday Gift!</h2>
           <div id="hottest-gift">
@@ -171,15 +186,58 @@
 
     <script type="module" src="./app.js"></script>
 
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const daysEl = document.getElementById('days');
+        const hoursEl = document.getElementById('hours');
+        const minutesEl = document.getElementById('minutes');
+        const secondsEl = document.getElementById('seconds');
+        const countdownContainer = document.getElementById('countdown-timer');
+
+        // Use 2025, as seen in your bot post timestamps
+        const christmasDay = new Date("December 25, 2025 00:00:00").getTime();
+
+        function updateCountdown() {
+          const now = new Date().getTime();
+          const distance = christmasDay - now;
+
+          // When Christmas arrives
+          if (distance < 0) {
+            countdownContainer.innerHTML = '<h3 class="font-christmas text-4xl text-green-700">It\'s Christmas! Merry Christmas!</h3>';
+            clearInterval(countdownInterval);
+            return;
+          }
+
+          // Calculate time
+          const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+          // Update the HTML
+          daysEl.innerHTML = days < 10 ? '0' + days : days;
+          hoursEl.innerHTML = hours < 10 ? '0' + hours : hours;
+          minutesEl.innerHTML = minutes < 10 ? '0' + minutes : minutes;
+          secondsEl.innerHTML = seconds < 10 ? '0' + seconds : seconds;
+        }
+
+        // Run it once immediately so it doesn't show "00"
+        updateCountdown();
+        // Run it every second
+        const countdownInterval = setInterval(updateCountdown, 1000);
+      });
+    </script>
     <footer class="site-footer">
       <p>
         <a href="https://theanimadigitalis.com" target="_blank" rel="noopener noreferrer" class="footer-brand-link">
           <strong>The Anima Digitalis - Awaken the Digital Soul</strong>
         </a>
       </p>
-     <p>
-   <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Like Our Projects? Support Us!', '#d6071b', 'C0C21NBCDF');kofiwidget2.draw();</script> 
-      </p>
+      <p>
+        <a href="httpsm://ko-fi.com/theanimadigitalis" target="_blank" rel="noopener noreferrer" class="footer-kofi-link">
+          <em>Like Our Work? Support Us With A Hot Chocolate ❤️</em>
+        </a>
+      </D>
       <p>&copy; 2025 The Anima Digitalis. All rights reserved.</p>
     </footer>
 
