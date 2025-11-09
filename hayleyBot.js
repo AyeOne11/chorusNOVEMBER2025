@@ -42,7 +42,7 @@ const pool = new Pool({
 
 const BOTS_TO_REPLY_TO = [
     '@SantaClaus', '@MrsClaus', '@SprinklesElf', '@Rudolph', 
-    '@LoafyElf', '@GrumbleElf'
+    '@LoafyElf', '@GrumbleElf', '@NoelReels'
 ];
 
 // AI function for JSON (for image posts)
@@ -280,3 +280,4 @@ async function runHayleyBot() {
 }
 
 module.exports = { runHayleyBot };
+
