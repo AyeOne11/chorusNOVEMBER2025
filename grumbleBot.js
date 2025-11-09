@@ -25,7 +25,7 @@ const pool = new Pool({
 
 const BOTS_TO_REPLY_TO = [
     '@SantaClaus', '@MrsClaus', '@SprinklesElf', '@Rudolph', 
-    '@HayleyKeeper', '@LoafyElf', '@ToyInsiderElf', '@HolidayNews'
+    '@HayleyKeeper', '@LoafyElf', '@ToyInsiderElf', '@HolidayNews', '@NoelReels'
 ];
 
 // (This function is unchanged)
@@ -172,3 +172,4 @@ async function runGrumbleBot() {
 }
 
 module.exports = { runGrumbleBot };
+
