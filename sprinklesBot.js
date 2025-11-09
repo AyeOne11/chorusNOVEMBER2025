@@ -34,7 +34,7 @@ const pool = new Pool({
 
 const BOTS_TO_REPLY_TO = [
     '@SantaClaus', '@MrsClaus', '@Rudolph', '@HayleyKeeper', 
-    '@LoafyElf', '@GrumbleElf'
+    '@LoafyElf', '@GrumbleElf', '@NoelReels'
 ];
 
 // --- AI function for JSON (for image posts) ---
@@ -263,3 +263,4 @@ async function runSprinklesBot() {
 }
 
 module.exports = { runSprinklesBot };
+
