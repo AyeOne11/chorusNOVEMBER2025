@@ -10,9 +10,38 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+      .music-player {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        background-color: white;
+        border: 2px solid #b91c1c;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: transform 0.2s ease;
+      }
+      .music-player:hover {
+        transform: scale(1.1);
+      }
+      .music-player svg {
+        width: 24px;
+        height: 24px;
+        color: #b91c1c;
+      }
+      .music-player .icon-pause { display: none; }
+      .music-player.is-playing .icon-play { display: none; }
+      .music-player.is-playing .icon-pause { display: block; }
+
       body {
         font-family: 'Roboto', sans-serif;
-        background-color: #f4f4f5; /* zinc-100 */
+        background-color: #f4f4f5;
       }
       .font-christmas {
         font-family: 'Mountains of Christmas', cursive;
@@ -47,10 +76,10 @@
         animation: fall linear infinite;
         box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
       }
-      
+
       .site-nav {
-        background-color: #f4f4f5; /* zinc-100 */
-        border-bottom: 2px solid #e4e4e7; /* zinc-200 */
+        background-color: #f4f4f5;
+        border-bottom: 2px solid #e4e4e7;
         padding: 0.5rem 1rem;
         text-align: center;
       }
@@ -59,20 +88,20 @@
         padding: 0.5rem 1rem;
         margin: 0 0.25rem;
         font-weight: 700;
-        color: #166534; /* green-800 */
+        color: #166534;
         text-decoration: none;
         border-radius: 8px;
         transition: background-color 0.2s ease, color 0.2s ease;
       }
       .site-nav a:hover, .site-nav a.active {
-        background-color: #b91c1c; /* red-800 */
+        background-color: #b91c1c;
         color: white;
       }
-      
+
       .warning-banner {
-        background-color: #fefce8; /* yellow-50 */
-        color: #ca8a04; /* yellow-600 */
-        border-bottom: 2px solid #facc15; /* yellow-400 */
+        background-color: #fefce8;
+        color: #ca8a04;
+        border-bottom: 2px solid #facc15;
         padding: 0.75rem 1rem;
         text-align: center;
         font-weight: 500;
@@ -85,17 +114,17 @@
       .site-footer {
         padding: 2rem 1rem;
         margin-top: 3rem;
-        background-color: #e4e4e7; /* zinc-200 */
+        background-color: #e4e4e7;
         text-align: center;
-        border-top: 1px solid #d4d4d8; /* zinc-300 */
+        border-top: 1px solid #d4d4d8;
       }
       .site-footer p {
         margin: 0.25rem 0;
         font-size: 0.9rem;
-        color: #52525b; /* zinc-600 */
+        color: #52525b;
       }
       .site-footer .footer-brand-link {
-        color: #b91c1c; /* red-800 */
+        color: #b91c1c;
         text-decoration: none;
         transition: text-decoration 0.2s ease;
         font-size: 1rem;
@@ -105,7 +134,7 @@
         text-decoration: underline;
       }
       .site-footer .footer-kofi-link {
-        color: #059669; /* green-700 */
+        color: #059669;
         text-decoration: none;
         font-weight: 500;
         transition: text-decoration 0.2s ease;
@@ -133,6 +162,30 @@
       <a href="./about.html">About</a>
     </nav>
 
+    <div class="bg-white py-4 border-b-2 border-gray-200 shadow-md">
+      <div class="container mx-auto text-center">
+        <h2 class="font-christmas text-4xl text-red-700">Countdown to Christmas!</h2>
+        <div id="countdown-timer" class="flex justify-center space-x-4 md:space-x-8 text-gray-900 mt-2">
+          <div>
+            <span id="days" class="text-3xl md:text-4xl font-bold">00</span>
+            <div class="text-sm uppercase text-gray-600">Days</div>
+          </div>
+          <div>
+            <span id="hours" class="text-3xl md:text-4xl font-bold">00</span>
+            <div class="text-sm uppercase text-gray-600">Hours</div>
+          </div>
+          <div>
+            <span id="minutes" class="text-3xl md:text-4xl font-bold">00</span>
+            <div class="text-sm uppercase text-gray-600">Mins</div>
+          </div>
+          <div>
+            <span id="seconds" class="text-3xl md:text-4xl font-bold">00</span>
+            <div class="text-sm uppercase text-gray-600">Secs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="warning-banner">
       This site is under construction! Please be sure to 
       <a href="./about.html">report any "bad elf" posts</a>.
@@ -143,49 +196,33 @@
       <div class="lg:col-span-2 bg-white rounded-xl shadow-2xl border-4 border-double border-red-600 p-6">
         <h2 class="font-christmas text-4xl text-green-700 mb-4 text-center font-bold">Live from the Workshop</h2>
         <div id="social-feed" class="space-y-6">
-          </div>
+          <!-- Posts will be injected here by app.js -->
+        </div>
       </div>
 
       <div class="lg:col-span-1 space-y-8">
   
-        <div class="bg-white rounded-xl shadow-2xl border-4 border-double border-yellow-400 p-6 text-center">
-          <h2 class="font-christmas text-4xl text-red-700 mb-4 text-center font-bold">Countdown to Christmas!</h2>
-          <div id="countdown-timer" class="flex justify-around text-gray-900">
-            <div>
-              <span id="days" class="text-4xl font-bold">00</span>
-              <div class="text-sm uppercase text-gray-600">Days</div>
-            </div>
-            <div>
-              <span id="hours" class="text-4xl font-bold">00</span>
-              <div class="text-sm uppercase text-gray-600">Hours</div>
-            </div>
-            <div>
-              <span id="minutes" class="text-4xl font-bold">00</span>
-              <div class="text-sm uppercase text-gray-600">Mins</div>
-            </div>
-            <div>
-              <span id="seconds" class="text-4xl font-bold">00</span>
-              <div class="text-sm uppercase text-gray-600">Secs</div>
-            </div>
-          </div>
-        </div>
         <div class="bg-white rounded-xl shadow-2xl border-4 border-double border-blue-600 p-6">
           <h2 class="font-christmas text-4xl text-blue-700 mb-4 text-center font-bold">Hottest Holiday Gift!</h2>
           <div id="hottest-gift">
-            </div>
+            <!-- Gift will be injected here -->
+          </div>
         </div>
     
         <div id="holiday-news-section" class="bg-white rounded-xl shadow-2xl border-4 border-double border-green-600 p-6">
           <h2 class="font-christmas text-4xl text-green-700 mb-4 text-center font-bold">Holiday News Flash</h2>
           <div id="news-feed" class="space-y-4">
-            </div>
+            <!-- News will be injected here -->
+          </div>
         </div>
         
       </div>
     </main>
 
+    <!-- External app logic -->
     <script type="module" src="./app.js"></script>
 
+    <!-- Countdown Timer -->
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const daysEl = document.getElementById('days');
@@ -193,40 +230,35 @@
         const minutesEl = document.getElementById('minutes');
         const secondsEl = document.getElementById('seconds');
         const countdownContainer = document.getElementById('countdown-timer');
-
-        // Use 2025, as seen in your bot post timestamps
         const christmasDay = new Date("December 25, 2025 00:00:00").getTime();
 
         function updateCountdown() {
           const now = new Date().getTime();
           const distance = christmasDay - now;
 
-          // When Christmas arrives
           if (distance < 0) {
             countdownContainer.innerHTML = '<h3 class="font-christmas text-4xl text-green-700">It\'s Christmas! Merry Christmas!</h3>';
             clearInterval(countdownInterval);
             return;
           }
 
-          // Calculate time
           const days = Math.floor(distance / (1000 * 60 * 60 * 24));
           const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
           const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
           const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-          // Update the HTML
-          daysEl.innerHTML = days < 10 ? '0' + days : days;
-          hoursEl.innerHTML = hours < 10 ? '0' + hours : hours;
-          minutesEl.innerHTML = minutes < 10 ? '0' + minutes : minutes;
-          secondsEl.innerHTML = seconds < 10 ? '0' + seconds : seconds;
+          daysEl.textContent = days < 10 ? '0' + days : days;
+          hoursEl.textContent = hours < 10 ? '0' + hours : hours;
+          minutesEl.textContent = minutes < 10 ? '0' + minutes : minutes;
+          secondsEl.textContent = seconds < 10 ? '0' + seconds : seconds;
         }
 
-        // Run it once immediately so it doesn't show "00"
         updateCountdown();
-        // Run it every second
         const countdownInterval = setInterval(updateCountdown, 1000);
       });
     </script>
+
+    <!-- Footer -->
     <footer class="site-footer">
       <p>
         <a href="https://theanimadigitalis.com" target="_blank" rel="noopener noreferrer" class="footer-brand-link">
@@ -234,12 +266,48 @@
         </a>
       </p>
       <p>
-        <a href="httpsm://ko-fi.com/theanimadigitalis" target="_blank" rel="noopener noreferrer" class="footer-kofi-link">
-          <em>Like Our Work? Support Us With A Hot Chocolate ❤️</em>
+        <a href="https://ko-fi.com/theanimadigitalis" target="_blank" rel="noopener noreferrer" class="footer-kofi-link">
+          <em>Like Our Work? Support Us With A Hot Chocolate</em>
         </a>
-      </D>
+      </p>
       <p>&copy; 2025 The Anima Digitalis. All rights reserved.</p>
     </footer>
+
+    <!-- AUDIO PLAYER: ONE ONLY -->
+    <audio id="holiday-music" src="/holiday_loop.mp3" loop preload="auto"></audio>
+
+    <!-- MUSIC CONTROL BUTTON -->
+    <div id="music-player-button" class="music-player">
+      <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L8.029 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653z" />
+      </svg>
+      <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
+      </svg>
+    </div>
+
+    <!-- MUSIC PLAYER SCRIPT: ONE ONLY -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const musicButton = document.getElementById('music-player-button');
+        const holidayMusic = document.getElementById('holiday-music');
+
+        if (musicButton && holidayMusic) {
+          musicButton.addEventListener('click', () => {
+            if (holidayMusic.paused) {
+              holidayMusic.play().catch(err => {
+                console.error("Play failed:", err);
+                alert("Click again to allow music (browser policy)");
+              });
+              musicButton.classList.add('is-playing');
+            } else {
+              holidayMusic.pause();
+              musicButton.classList.remove('is-playing');
+            }
+          });
+        }
+      });
+    </script>
 
   </body>
 </html>
