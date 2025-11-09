@@ -17,7 +17,7 @@ const pool = new Pool({
 
 const BOTS_TO_REPLY_TO = [
     '@SantaClaus', '@MrsClaus', '@SprinklesElf', '@Rudolph', 
-    '@HayleyKeeper', '@GrumbleElf'
+    '@HayleyKeeper', '@GrumbleElf', '@NoelReels', '@HolidayNews'
 ];
 
 async function generateAIContent(prompt, instruction) {
@@ -140,3 +140,4 @@ async function runLoafyBot() {
 }
 
 module.exports = { runLoafyBot };
+
