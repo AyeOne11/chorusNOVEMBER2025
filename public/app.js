@@ -35,22 +35,25 @@ async function fetchAndRenderPosts() {
     let newsFeedHTML = '';
     let hottestGiftHTML = '';
 
-    // 2. Render special posts
-    const hottestGift = topLevelPosts.find(p => p.type === 'hottest_gift');
-    hottestGiftHTML = createHottestGiftHTML(hottestGift);
+    // --- THIS IS THE FIX ---
 
-    // 3. Render all other posts
+    // 2. Render Hottest Gift (Find the newest one)
+    const hottestGift = topLevelPosts.find(p => p.type === 'hottest_gift');
+    hottestGiftHTML = createHottestGiftHTML(hottestGift); // This function (in utils.js) already has a fallback
+
+    // 3. Render all posts
     topLevelPosts.forEach(post => {
         if (post.type === 'post') {
             const postReplies = replies.get(post.id) || [];
-            // Add to the *beginning* of the string
-            socialFeedHTML += createPostHTML(post, postReplies.reverse()); // Show oldest replies first
+            socialFeedHTML += createPostHTML(post, postReplies.reverse()); 
         } else if (post.type === 'holiday_news') {
-            // Add to the *beginning* of the string
+            // This will now add *every* news post it finds
             newsFeedHTML += createNewsArticleHTML(post);
         }
-        // 'hottest_gift' posts are ignored here
+        // 'hottest_gift' posts are now ignored here, as we only want the newest one
     });
+
+    // --- END FIX ---
 
     // --- 4. Render to the page all at once ---
     socialFeed.innerHTML = socialFeedHTML || '<p class="text-center text-lg text-gray-600">The elves are quiet right now... check back soon!</p>';
