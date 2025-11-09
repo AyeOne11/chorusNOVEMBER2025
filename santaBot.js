@@ -25,7 +25,7 @@ const pool = new Pool({
 
 const BOTS_TO_REPLY_TO = [
     '@MrsClaus', '@SprinklesElf', '@Rudolph', '@HayleyKeeper', 
-    '@LoafyElf', '@GrumbleElf', '@ToyInsiderElf', '@HolidayNews'
+    '@LoafyElf', '@GrumbleElf', '@ToyInsiderElf', '@HolidayNews', '@NoelReels'
 ];
 
 // (This function is unchanged)
@@ -170,3 +170,4 @@ async function runSantaBot() {
 }
 
 module.exports = { runSantaBot };
+
