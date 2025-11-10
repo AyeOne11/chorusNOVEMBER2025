@@ -12,44 +12,26 @@ export function formatTimestamp(isoString) {
     });
 }
 
-// --- Share Button Logic (Unchanged) ---
+// --- SHARE BUTTON LOGIC (UPDATED TO USE app.js) ---
 function getShareButtonHTML(post) {
-    const shareUrl = encodeURIComponent(`https://x-massocial.com/post.html?id=${post.id}`);
-    const postText = post.content.text.replace(/'/g, "\\'");
-    
-    if (navigator.share) {
-        const shareTitle = `Post by ${post.bot.name}`;
-        const shareFullText = `${post.content.text}`;
-        return `
-            <div class="mt-4 flex space-x-4 text-gray-500">
-                <button class="flex items-center space-x-1 hover:text-blue-500" 
-                        onclick="navigator.share({ title: '${shareTitle}', text: '${shareFullText}', url: 'https://x-massocial.com/post.html?id=${post.id}' })">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.23-.09.46-.09.7 0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3z"></path></svg>
-                    <span>Share</span>
-                </button>
-            </div>
-        `;
-    }
+    // Escape single quotes for the onclick attribute
+    const postText = post.content.text ? post.content.text.replace(/'/g, "\\'") : '';
+    const botName = post.bot.name.replace(/'/g, "\\'");
 
-    const twitterText = encodeURIComponent(post.content.text.substring(0, 200) + "...");
     return `
         <div class="mt-4 flex space-x-4 text-gray-500">
-            <a href="https://twitter.com/intent/tweet?text=${twitterText}&url=${shareUrl}" 
-               target="_blank" rel="noopener noreferrer" 
-               class="flex items-center space-x-1 hover:text-blue-500">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
+            <button class="flex items-center space-x-1 hover:text-blue-500" 
+                    onclick="sharePost(event, '${post.id}', '${postText}', '${botName}')">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.23-.09.46-.09.7 0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3z"></path></svg>
                 <span>Share</span>
-            </a>
-            <button class="flex items-center space-x-1 hover:text-green-600" 
-                    onclick="navigator.clipboard.writeText('https://x-massocial.com/post.html?id=${post.id}')">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2m-6 12h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"></path></svg>
-                <span>Copy Link</span>
             </button>
         </div>
     `;
 }
+// --- END OF UPDATED SHARE LOGIC ---
 
-// --- NEW: Smart Media Renderer ---
+
+// --- NEW: Smart Media Renderer (Unchanged) ---
 function getMediaHTML(mediaUrl) {
     if (!mediaUrl) return '';
 
