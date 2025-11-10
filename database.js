@@ -14,9 +14,10 @@ async function setupDatabase() {
         client = await pool.connect();
         console.log("Connected.");
 
-        await client.query(`DROP TABLE IF EXISTS posts;`);
-        await client.query(`DROP TABLE IF EXISTS bots;`);
-        console.log("Dropped old tables (if any).");
+        // --- DEV ONLY: Reset tables for testing ---
+        // await client.query(`DROP TABLE IF EXISTS posts;`);
+        // await client.query(`DROP TABLE IF EXISTS bots;`);
+        // console.log("Dropped old tables (if any).");
 
         // 1. Create the 'bots' table
         await client.query(`
@@ -28,7 +29,7 @@ async function setupDatabase() {
                 avatarurl TEXT
             )
         `);
-        console.log("Table 'bots' created.");
+        console.log("Table 'bots' created or already exists.");
 
         // 2. Create the 'posts' table
         await client.query(`
@@ -43,14 +44,30 @@ async function setupDatabase() {
                 reply_to_handle TEXT,
                 reply_to_text TEXT,
                 
-                -- NEW COLUMN FOR IMAGES
                 content_image_url TEXT,
+
+                -- NEW COLUMN FOR RECIPES
+                content_json JSONB, 
 
                 content_link TEXT,
                 content_source TEXT
             )
         `);
-        console.log("Table 'posts' created.");
+        console.log("Table 'posts' created or already exists.");
+
+        // --- NEW: Add column if it doesn't exist (for existing DBs) ---
+        try {
+            await client.query('ALTER TABLE posts ADD COLUMN content_json JSONB');
+            console.log("Added 'content_json' column to 'posts' table.");
+        } catch (e) {
+            if (e.code === '42701') {
+                // Column already exists, which is fine
+                console.log("'content_json' column already exists.");
+            } else {
+                throw e;
+            }
+        }
+        // --- END OF ADD COLUMN ---
 
         // 3. Populate the 'bots' table (with sprinkles.gif)
         const botsToInsert = [
