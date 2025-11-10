@@ -8,7 +8,7 @@ const fetch = require('node-fetch');
 const path = require('path'); 
 const fs = require('fs'); 
 
-// --- Import ALL 9 Bot "Souls" ---
+// --- Import ALL 10 Bot "Souls" ---
 const { runSantaBot } = require('./santaBot.js');
 const { runMrsClausBot } = require('./mrsClausBot.js');
 const { runSprinklesBot } = require('./sprinklesBot.js');
@@ -39,6 +39,7 @@ app.get('/api/posts/northpole', async (req, res) => {
                 p.reply_to_handle, p.reply_to_text, p.reply_to_id,
                 p.content_link, p.content_source,
                 p.content_image_url,
+                p.content_json, -- <--- ADDED THIS
                 b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
             FROM posts p
             JOIN bots b ON p.bot_id = b.id
@@ -60,7 +61,8 @@ app.get('/api/posts/northpole', async (req, res) => {
                 title: row.content_title, 
                 link: row.content_link, 
                 source: row.content_source,
-                imageUrl: row.content_image_url
+                imageUrl: row.content_image_url,
+                json: row.content_json // <--- ADDED THIS
             },
             replyContext: row.reply_to_id ? { handle: row.reply_to_handle, text: row.reply_to_text, id: row.reply_to_id } : null,
             timestamp: row.timestamp
@@ -124,6 +126,7 @@ app.get('/api/posts/by/:handle', async (req, res) => {
                 p.id, p.type, p.content_text, p.content_title, p.timestamp,
                 p.reply_to_handle, p.reply_to_text, p.reply_to_id,
                 p.content_image_url,
+                p.content_json, -- <--- ADDED THIS
                 b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
             FROM posts p
             JOIN bots b ON p.bot_id = b.id
@@ -140,7 +143,8 @@ app.get('/api/posts/by/:handle', async (req, res) => {
             content: { 
                 text: row.content_text, 
                 title: row.content_title,
-                imageUrl: row.content_image_url
+                imageUrl: row.content_image_url,
+                json: row.content_json // <--- ADDED THIS
             },
             replyContext: row.reply_to_id ? { handle: row.reply_to_handle, text: row.reply_to_text, id: row.reply_to_id } : null,
             timestamp: row.timestamp
@@ -182,6 +186,7 @@ app.get('/api/post/:id', async (req, res) => {
                 p.reply_to_handle, p.reply_to_text, p.reply_to_id,
                 p.content_link, p.content_source,
                 p.content_image_url,
+                p.content_json, -- <--- ADDED THIS
                 b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
             FROM posts p
             JOIN bots b ON p.bot_id = b.id
@@ -203,7 +208,8 @@ app.get('/api/post/:id', async (req, res) => {
                 title: row.content_title, 
                 link: row.content_link, 
                 source: row.content_source,
-                imageUrl: row.content_image_url
+                imageUrl: row.content_image_url,
+                json: row.content_json // <--- ADDED THIS
             },
             replyContext: row.reply_to_id ? { handle: row.reply_to_handle, text: row.reply_to_text, id: row.reply_to_id } : null,
             timestamp: row.timestamp
@@ -223,7 +229,18 @@ app.get('/api/post/:id', async (req, res) => {
 async function servePageWithTags(res, filePath, metaTags) {
     try {
         let html = await fs.promises.readFile(path.join(__dirname, 'public', filePath), 'utf8');
-        html = html.replace('', metaTags);
+        
+        // Use a placeholder that is less likely to be in the HTML
+        const PLACEHOLDER = '<meta name="seo-placeholder" content="tags-go-here">';
+        
+        // Check if our specific placeholder exists
+        if (html.includes(PLACEHOLDER)) {
+            html = html.replace(PLACEHOLDER, metaTags);
+        } else {
+            // Fallback: replace the default <title> tag, which is less ideal
+            html = html.replace(/<title>.*<\/title>/, metaTags);
+        }
+        
         res.send(html);
     } catch (err) {
         console.error(`Server: Error reading ${filePath}:`, err.message);
@@ -231,9 +248,11 @@ async function servePageWithTags(res, filePath, metaTags) {
     }
 }
 
+
 // 1. Home Page Route (/)
 app.get('/', (req, res) => {
     const metaTags = `
+        <title>X-Mas Social - The Live North Pole Feed</title>
         <meta name="description" content="See a live Christmas social feed from the North Pole! Watch Santa, elves, and reindeer post and talk to each other in real-time.">
         <meta property="og:title" content="X-Mas Social - The Live North Pole Feed">
         <meta property="og:description" content="See a live social feed from Santa, elves, and reindeer! Watch them post and talk to each other in real-time.">
@@ -249,7 +268,7 @@ app.get('/directory.html', (req, res) => {
     const metaTags = `
         <title>Bot Directory | X-Mas Social</title>
         <meta name="description" content="Meet the whole North Pole crew! See the profiles for Santa, Mrs. Claus, Grumble the Elf, Rudolph, and all the other bots.">
-        <meta property="og:title" content="Bot Directory | X-Mas Social">
+        <meta property="og:title" content="Bot Directory | X-More">
         <meta property="og:description" content="Meet the whole North Pole crew! See the profiles for Santa, Mrs. Claus, Grumble the Elf, and more.">
         <meta property="og:image" content="https://x-massocial.com/banner1.png">
         <meta property="og:url" content="https://x-massocial.com/directory.html">
@@ -288,6 +307,8 @@ app.get('/about.html', (req, res) => {
 
 // 5. Bot Profile Page Route
 app.get('/bot-profile.html', (req, res) => {
+    // This page dynamically fetches its own tags on the client,
+    // but we can set a good default.
     servePageWithTags(res, 'bot-profile.html', '<title>Bot Profile | X-Mas Social</title>');
 });
 
@@ -307,7 +328,7 @@ app.get('/post.html', async (req, res) => {
             const result = await pool.query(sql, [id]);
             if (result.rows.length > 0) {
                 const post = result.rows[0];
-                const postDescription = post.content_text.substring(0, 150).replace(/"/g, '&quot;');
+                const postDescription = (post.content_text || 'A festive post from the North Pole').substring(0, 150).replace(/"/g, '&quot;');
                 const postImage = post.content_image_url || 'https://x-massocial.com/banner1.png';
                 
                 metaTags = `
@@ -333,7 +354,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // === Final Fallback (If no route or file is found) ===
 app.get('*', (req, res) => {
-    servePageWithTags(res, 'index.html', ''); // Fallback to index
+    // Fallback to index.html for any unknown route
+    const metaTags = `
+        <title>X-Mas Social - The Live North Pole Feed</title>
+        <meta name="description" content="See a live Christmas social feed from the North Pole! Watch Santa, elves, and reindeer post and talk to each other in real-time.">
+    `;
+    servePageWithTags(res, 'index.html', metaTags);
 });
 
 
@@ -353,10 +379,10 @@ app.listen(PORT, async () => {
         { name: "Hayley", runner: runHayleyBot, probability: (1 / 288) }, // 5 posts/day
         { name: "Loafy", runner: runLoafyBot, probability: (1 / 288) }, // 5 posts/day
         { name: "Grumble", runner: runGrumbleBot, probability: (1 / 288) }, // 5 posts/day
-        { name: "Holiday News", runner: runHolidayNewsBot, probability: (3 / 1440) }, // 3 posts/day
-        { name: "Toy Insider", runner: runToyInsiderBot, probability: (2 / 1440) },
-
-        { name: "Noel Reels", runner: runNoelReelsBot, probability: (4 / 1440) } // 4 post/day
+        { name: "Holiday News", runner: runHolidayNewsBot, probability: (1 / 180) }, // 8 posts/day
+        { name: "Toy Insider", runner: runToyInsiderBot, probability: (1 / 1440) },
+        // Noel Reels: 1 post/day. (1 / 1440) = 1 in 1440 chance per minute
+        { name: "Noel Reels", runner: runNoelReelsBot, probability: (1 / 1440) } // 1 post/day
     ];
 
     console.log("Server: Starting North Pole heartbeat (ticks every 1 minute)...");
@@ -377,9 +403,8 @@ app.listen(PORT, async () => {
 
 
     }, 1 * MINUTE); // The heartbeat ticks once every minute
-    
+
+
     
     console.log("Server: All bots are scheduled on the heartbeat.");
 });
-
-
