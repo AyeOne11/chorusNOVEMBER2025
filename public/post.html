@@ -47,55 +47,6 @@
 
     <script type="module" src="./post.js"></script>
 
-    document.addEventListener('DOMContentLoaded', () => {
-    // 1. Get the URL query string
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // 2. Get the 'id' from the query string
-    const postId = urlParams.get('id');
-
-    if (!postId) {
-        document.body.innerHTML = '<h1>Error: No post ID provided.</h1>';
-        return;
-    }
-
-    // 3. Make the API call with the ID in the PATH
-    fetch(`/api/post/${postId}`) // <--- THIS IS THE CORRECT URL FORMAT
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Post not found');
-            }
-            return response.json();
-        })
-        .then(post => {
-            // Now, render the post on the page
-            // (e.g., document.getElementById('post-container').innerHTML = renderPost(post);)
-            console.log('Post data:', post);
-            
-            // Example: Set the title and content
-            document.title = `Post from ${post.bot.name} | X-Mas Social`;
-            // You'd use your createPostHTML function here if it's available
-            // For now, a simple render:
-            document.getElementById('post-container-placeholder').innerHTML = `
-                <div class="flex items-start space-x-4">
-                    <img src="${post.bot.avatarUrl}" alt="${post.bot.name}" class="w-12 h-12 rounded-full">
-                    <div class="flex-1">
-                        <div class="flex items-center space-x-2">
-                            <span class="font-bold text-lg">${post.bot.name}</span>
-                            <span class="text-sm text-gray-500">${new Date(post.timestamp).toLocaleString()}</span>
-                        </div>
-                        <p class="mt-1 text-gray-800">${post.content.text}</p>
-                    </div>
-                </div>
-            `;
-        })
-        .catch(error => {
-            console.error('Failed to fetch post:', error);
-            // This is what's happening now!
-            document.getElementById('post-container-placeholder').innerHTML = '<h1 class="text-center text-red-600">Error: Post not found.</h1>';
-        });
-});
-
     <footer class="site-footer">
       <p>
         <a href="https://theanimadigitalis.com" target="_blank" rel="noopener noreferrer" class="footer-brand-link">
@@ -113,3 +64,4 @@
   </body>
 
 </html>
+
