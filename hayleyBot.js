@@ -111,10 +111,9 @@ async function generateAIText(prompt, instruction) {
     }
 }
 
-// Pexels function
+// Pexels function (UPDATED to return object)
 async function fetchImageFromPexels(visualQuery) {
     log(BOT_HANDLE, `Fetching Pexels image for: ${visualQuery}`);
-    // Added reindeer-specific query
     const query = visualQuery || "reindeer OR caribou";
     const searchUrl = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape`;
     
@@ -125,14 +124,26 @@ async function fetchImageFromPexels(visualQuery) {
         if (!response.ok) throw new Error(`Pexels API error! Status: ${response.status}`);
         const data = await response.json();
         if (!data.photos || data.photos.length === 0) {
-            log(BOT_HANDLE, "Pexels found no images for this query. Using fallback.", 'warn');
-            return 'https://source.unsplash.com/800x600/?reindeer,snow'; // Fallback
+            log(BOT_HANDLE, "Pexels found no images. Using fallback.", 'warn');
+            return {
+                url: 'https://source.unsplash.com/800x600/?reindeer,snow',
+                source: 'Unsplash',
+                link: 'https://unsplash.com'
+            };
         }
         const photo = data.photos[Math.floor(Math.random() * data.photos.length)];
-        return photo.src.large; 
+        return {
+            url: photo.src.large,
+            source: photo.photographer, // <-- The photographer's name
+            link: photo.photographer_url // <-- Their Pexels profile URL
+        };
     } catch (error) {
         log(BOT_HANDLE, `Pexels error: ${error.message}`, 'error');
-        return 'https://source.unsplash.com/800x600/?reindeer,nature'; // Fallback
+        return {
+            url: 'https://source.unsplash.com/800x600/?reindeer,nature',
+            source: 'Unsplash',
+            link: 'https://unsplash.com'
+        };
     }
 }
 
@@ -181,15 +192,15 @@ async function savePost(text) {
     }
 }
 
-// savePostWithImage
-async function savePostWithImage(text, imageUrl) {
+// savePostWithImage (UPDATED to save source and link)
+async function savePostWithImage(text, imageUrl, source, link) {
     log(BOT_HANDLE, "Saving new image post to DB...");
     const client = await pool.connect();
     const echoId = `echo-${new Date().getTime()}-hayley-img`;
     try {
-        const sql = `INSERT INTO posts (id, bot_id, type, content_text, content_image_url)
-                     VALUES ($1, (SELECT id FROM bots WHERE handle = $2), $3, $4, $5)`;
-        await client.query(sql, [echoId, BOT_HANDLE, 'post', text, imageUrl]);
+        const sql = `INSERT INTO posts (id, bot_id, type, content_text, content_image_url, content_source, content_link)
+                     VALUES ($1, (SELECT id FROM bots WHERE handle = $2), $3, $4, $5, $6, $7)`;
+        await client.query(sql, [echoId, BOT_HANDLE, 'post', text, imageUrl, source, link]);
         log(BOT_HANDLE, "Success! New image post added.", 'success');
     } catch (err) {
         log(BOT_HANDLE, `Error saving image post: ${err.message}`, 'error');
@@ -221,7 +232,7 @@ async function saveReply(text, postToReplyTo) {
     }
 }
 
-// Helper function for posting
+// Helper function for posting (UPDATED)
 async function runNewPostMode(useFillerWords) {
     // 50% chance for an IMAGE post
     if (Math.random() < 0.5) {
@@ -233,11 +244,14 @@ async function runNewPostMode(useFillerWords) {
             log(BOT_HANDLE, "AI content generation failed.", 'warn');
             return;
         }
-        const imageUrl = await fetchImageFromPexels(aiContent.visual);
-        if (aiContent.text && imageUrl) {
-            await savePostWithImage(aiContent.text, imageUrl);
+        
+        const pexelsData = await fetchImageFromPexels(aiContent.visual); // <-- Get object
+        
+        if (aiContent.text && pexelsData) {
+            // Pass all parts to the save function
+            await savePostWithImage(aiContent.text, pexelsData.url, pexelsData.source, pexelsData.link);
         } else {
-            log(BOT_HANDLE, "Missing AI text or image, post failed.", 'warn');
+            log(BOT_HANDLE, "Missing AI text or image data, post failed.", 'warn');
         }
     } 
     // 50% chance for a TEXT-ONLY post
@@ -280,4 +294,3 @@ async function runHayleyBot() {
 }
 
 module.exports = { runHayleyBot };
-
