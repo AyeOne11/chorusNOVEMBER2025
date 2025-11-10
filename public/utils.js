@@ -31,7 +31,7 @@ function getShareButtonHTML(post) {
 // --- END OF SHARE LOGIC ---
 
 
-// --- NEW: Smart Media Renderer (Unchanged) ---
+// --- Smart Media Renderer (Unchanged) ---
 function getMediaHTML(mediaUrl) {
     if (!mediaUrl) return '';
 
@@ -67,11 +67,25 @@ function getMediaHTML(mediaUrl) {
 // --- END Smart Media Renderer ---
 
 // --- HTML Builder for a Single Reply Post (Unchanged) ---
+// (We don't need attribution on replies, so this function is unchanged)
 export function createReplyPostHTML(replyPost) {
     const postTimestamp = formatTimestamp(replyPost.timestamp);
     const avatarPath = replyPost.bot.avatarUrl || './avatars/default.png';
     const mediaHTML = getMediaHTML(replyPost.content.imageUrl); 
     const shareButtonHTML = getShareButtonHTML(replyPost); 
+
+    // --- NEW: Attribution for replies (if they ever have images) ---
+    // Note: This is future-proofing. Currently, only top-level posts have Pexels media.
+    const attributionHTML = (replyPost.content.source && replyPost.content.link && replyPost.content.imageUrl) ? `
+        <div class="mt-1 text-xs text-gray-400">
+            ${replyPost.content.imageUrl.includes('.mp4') ? 'Video' : 'Photo'} by 
+            <a href="${replyPost.content.link}" target="_blank" rel="noopener noreferrer" class="hover:underline">
+                ${replyPost.content.source}
+            </a>
+            ${replyPost.content.source.toLowerCase() !== 'unsplash' ? ' on Pexels' : ''}
+        </div>
+    ` : '';
+    // --- END NEW LOGIC ---
 
     return `
         <div class="flex items-start space-x-3 pt-4 ml-8">
@@ -88,13 +102,14 @@ export function createReplyPostHTML(replyPost) {
                 </div>
                 <p class="mt-1 text-gray-800">${replyPost.content.text}</p>
                 ${mediaHTML}
+                ${attributionHTML} 
                 ${shareButtonHTML}
             </div>
         </div>
     `;
 }
 
-// --- HTML Builder for a Top-Level Post (Unchanged) ---
+// --- HTML Builder for a Top-Level Post (UPDATED) ---
 export function createPostHTML(post, replies = []) {
   const postTimestamp = formatTimestamp(post.timestamp);
   const avatarPath = post.bot.avatarUrl || './avatars/default.png';
@@ -110,12 +125,24 @@ export function createPostHTML(post, replies = []) {
     
   const mediaHTML = getMediaHTML(post.content.imageUrl); 
   
+  // --- THIS IS THE NEW CODE ---
+  const attributionHTML = (post.content.source && post.content.link && post.content.imageUrl) ? `
+    <div class="mt-1 text-xs text-gray-400">
+        ${post.content.imageUrl.includes('.mp4') ? 'Video' : 'Photo'} by 
+        <a href="${post.content.link}" target="_blank" rel="noopener noreferrer" class="hover:underline">
+            ${post.content.source}
+        </a>
+        ${post.content.source.toLowerCase() !== 'unsplash' ? ' on Pexels' : ''}
+    </div>
+  ` : '';
+  // --- END NEW CODE ---
+  
   const shareButtonHTML = getShareButtonHTML(post);
   const repliesHTML = replies.map(createReplyPostHTML).join('');
   
   const avatarHTML = avatarPath.startsWith('./')
     ? `<img class="w-12 h-12 rounded-full bg-gray-200" src="${avatarPath}" alt="${post.bot.name}">`
-    : `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-3xl">${avatarPath}</div>`;
+    : `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-3xl">${avatarHTML}</div>`;
 
   return `
     <div class="animate-fade-in border-b border-gray-200 pb-4 last:border-b-0">
@@ -131,7 +158,7 @@ export function createPostHTML(post, replies = []) {
           ${replyContextHTML}
           <p class="mt-1 text-gray-800">${post.content.text}</p>
           ${mediaHTML}
-          ${shareButtonHTML}
+          ${attributionHTML} ${shareButtonHTML}
           <div class="mt-2 space-y-2">
               ${repliesHTML}
           </div>
@@ -191,7 +218,7 @@ export function createSnowflakes(snowContainer) {
   }
 }
 
-// --- NEW: SHARE POST FUNCTION (Moved from app.js) ---
+// --- SHARE POST FUNCTION (Unchanged) ---
 window.sharePost = async function(event, postId, postText, botName) {
   // 1. Stop the link from trying to go anywhere
   event.preventDefault(); 
