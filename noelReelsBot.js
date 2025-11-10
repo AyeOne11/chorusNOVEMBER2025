@@ -100,7 +100,7 @@ async function generateAIReply(prompt) {
     }
 }
 
-// Pexels Video function
+// Pexels Video function (UPDATED to return object)
 async function fetchVideoFromPexels(visualQuery) {
     log(BOT_HANDLE, `Fetching Pexels video for: ${visualQuery}`);
     const searchUrl = `https://api.pexels.com/videos/search?query=${encodeURIComponent(visualQuery)}&per_page=10&orientation=portrait`;
@@ -113,30 +113,42 @@ async function fetchVideoFromPexels(visualQuery) {
         const data = await response.json();
         if (!data.videos || data.videos.length === 0) {
             log(BOT_HANDLE, "Pexels found no videos. Using fallback.", 'warn');
-            return 'https://static.pexels.com/v1/videos/2885324/pexels-video-2885324-portrait.mp4'; // Fallback
+            return {
+                url: 'https://static.pexels.com/v1/videos/2885324/pexels-video-2885324-portrait.mp4',
+                source: 'Pexels',
+                link: 'https://pexels.com'
+            };
         }
         
         const video = data.videos[Math.floor(Math.random() * data.videos.length)];
         // Find a short, high-quality, looping-friendly MP4
         const videoFile = video.video_files.find(f => f.quality === 'sd' && f.file_type === 'video/mp4' && f.height > f.width);
         
-        return videoFile ? videoFile.link : video.video_files[0].link; 
+        return {
+            url: videoFile ? videoFile.link : video.video_files[0].link,
+            source: video.user.name, // <-- The video creator's name
+            link: video.user.url // <-- Their Pexels profile URL
+        };
     } catch (error) {
         log(BOT_HANDLE, `Pexels error: ${error.message}`, 'error');
-        return 'https://static.pexels.com/v1/videos/2885324/pexels-video-2885324-portrait.mp4'; // Fallback
+        return {
+            url: 'https://static.pexels.com/v1/videos/2885324/pexels-video-2885324-portrait.mp4',
+            source: 'Pexels',
+            link: 'https://pexels.com'
+        };
     }
 }
 
-// savePostWithVideo
-async function savePostWithVideo(text, videoUrl) {
+// savePostWithVideo (UPDATED to save source and link)
+async function savePostWithVideo(text, videoUrl, source, link) {
     log(BOT_HANDLE, "Saving new video post to DB...");
     const client = await pool.connect();
     const echoId = `echo-${new Date().getTime()}-noel-vid`;
     try {
-        const sql = `INSERT INTO posts (id, bot_id, type, content_text, content_image_url)
-                     VALUES ($1, (SELECT id FROM bots WHERE handle = $2), $3, $4, $5)`;
+        const sql = `INSERT INTO posts (id, bot_id, type, content_text, content_image_url, content_source, content_link)
+                     VALUES ($1, (SELECT id FROM bots WHERE handle = $2), $3, $4, $5, $6, $7)`;
         // We re-use the 'content_image_url' column to store the video URL
-        await client.query(sql, [echoId, BOT_HANDLE, 'post', text, videoUrl]);
+        await client.query(sql, [echoId, BOT_HANDLE, 'post', text, videoUrl, source, link]);
         log(BOT_HANDLE, "Success! New video post added.", 'success');
     } catch (err) {
         log(BOT_HANDLE, `Error saving video post: ${err.message}`, 'error');
@@ -196,7 +208,7 @@ async function saveReply(text, postToReplyTo) {
     }
 }
 
-// --- MAIN RUNNER (50/50 Dual Personality) ---
+// --- MAIN RUNNER (50/50 Dual Personality) (UPDATED) ---
 async function runNoelReelsBot() {
     // 50% chance to reply
     if (Math.random() < 0.5) {
@@ -210,7 +222,6 @@ async function runNoelReelsBot() {
             }
         } else {
             log(BOT_HANDLE, "No posts to reply to. Staying quiet.");
-            // Unlike other bots, Noel doesn't post if they can't find a reply.
         }
     } 
     // 50% chance to make a new video post
@@ -222,12 +233,13 @@ async function runNoelReelsBot() {
             return;
         }
 
-        const videoUrl = await fetchVideoFromPexels(aiContent.visual);
+        const pexelsData = await fetchVideoFromPexels(aiContent.visual); // <-- Get object
         
-        if (aiContent.text && videoUrl) {
-            await savePostWithVideo(aiContent.text, videoUrl);
+        if (aiContent.text && pexelsData) {
+            // Pass all parts to the save function
+            await savePostWithVideo(aiContent.text, pexelsData.url, pexelsData.source, pexelsData.link);
         } else {
-            log(BOT_HANDLE, "Missing AI text or video URL, post failed.", 'warn');
+            log(BOT_HANDLE, "Missing AI text or video data, post failed.", 'warn');
         }
     }
 }
