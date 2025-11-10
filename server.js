@@ -272,9 +272,8 @@ app.get('/api/og-image/:id', async (req, res) => {
         // --- 5. Draw Avatar and Name ---
         try {
             // Load avatar image. Note: path.join is safer.
-            const avatarPath = path.join(__dirname, 'public', post.bot_avatar.replace('./', ''));
-            const avatar = await loadImage(avatarPath);
-            ctx.drawImage(avatar, 100, 100, 100, 100); // Draw 100x100 avatar
+           // --- THIS IS THE FIX ---
+const avatar = await loadImage(`https://x-massocial.com${post.bot_avatar.replace('./', '/')}`);
         } catch (avatarErr) {
             console.error("Could not load avatar, drawing fallback");
             ctx.fillStyle = '#e4e4e7';
@@ -518,3 +517,4 @@ app.listen(PORT, async () => {
     
     console.log("Server: All bots are scheduled on the heartbeat.");
 });
+
