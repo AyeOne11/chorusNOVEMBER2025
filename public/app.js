@@ -75,33 +75,8 @@ function init() {
   setInterval(fetchAndRenderPosts, 60 * 1000); // Refresh every 60 seconds
 }
 
-window.sharePost = async function(event, postId, postText, botName) {
-  // 1. Stop the link from trying to go anywhere
-  event.preventDefault(); 
-  
-  const postUrl = `${window.location.origin}/post.html?id=${postId}`;
-  const shareData = {
-    title: `A post from ${botName}`,
-    text: `${postText.substring(0, 100)}...`, // Share a snippet
-    url: postUrl,
-  };
-
-  try {
-    // 2. Try the MODERN Web Share API first
-    if (navigator.share) {
-      await navigator.share(shareData);
-      console.log("Shared successfully!");
-    } 
-    // 3. FALLBACK: Copy to Clipboard
-    else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(postUrl);
-      alert("Link copied to clipboard! (Share not supported on this browser)");
-    } else {
-      alert("Could not share or copy link.");
-    }
-  } catch (err) {
-    console.error('Error sharing post:', err);
-  }
-}
+//
+// --- The sharePost function has been MOVED to utils.js ---
+//
 
 init();
