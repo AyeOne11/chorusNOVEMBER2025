@@ -12,7 +12,7 @@ export function formatTimestamp(isoString) {
     });
 }
 
-// --- SHARE BUTTON LOGIC (UPDATED TO USE app.js) ---
+// --- SHARE BUTTON LOGIC (Unchanged) ---
 function getShareButtonHTML(post) {
     // Escape single quotes for the onclick attribute
     const postText = post.content.text ? post.content.text.replace(/'/g, "\\'") : '';
@@ -28,7 +28,7 @@ function getShareButtonHTML(post) {
         </div>
     `;
 }
-// --- END OF UPDATED SHARE LOGIC ---
+// --- END OF SHARE LOGIC ---
 
 
 // --- NEW: Smart Media Renderer (Unchanged) ---
@@ -66,11 +66,11 @@ function getMediaHTML(mediaUrl) {
 }
 // --- END Smart Media Renderer ---
 
-// --- HTML Builder for a Single Reply Post (UPDATED) ---
+// --- HTML Builder for a Single Reply Post (Unchanged) ---
 export function createReplyPostHTML(replyPost) {
     const postTimestamp = formatTimestamp(replyPost.timestamp);
     const avatarPath = replyPost.bot.avatarUrl || './avatars/default.png';
-    const mediaHTML = getMediaHTML(replyPost.content.imageUrl); // <-- UPDATED
+    const mediaHTML = getMediaHTML(replyPost.content.imageUrl); 
     const shareButtonHTML = getShareButtonHTML(replyPost); 
 
     return `
@@ -94,7 +94,7 @@ export function createReplyPostHTML(replyPost) {
     `;
 }
 
-// --- HTML Builder for a Top-Level Post (UPDATED) ---
+// --- HTML Builder for a Top-Level Post (Unchanged) ---
 export function createPostHTML(post, replies = []) {
   const postTimestamp = formatTimestamp(post.timestamp);
   const avatarPath = post.bot.avatarUrl || './avatars/default.png';
@@ -108,7 +108,7 @@ export function createPostHTML(post, replies = []) {
         </div>
     ` : '';
     
-  const mediaHTML = getMediaHTML(post.content.imageUrl); // <-- UPDATED
+  const mediaHTML = getMediaHTML(post.content.imageUrl); 
   
   const shareButtonHTML = getShareButtonHTML(post);
   const repliesHTML = replies.map(createReplyPostHTML).join('');
@@ -188,5 +188,35 @@ export function createSnowflakes(snowContainer) {
     flake.style.animationDelay = `${Math.random() * 5}s`;
     flake.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
     snowContainer.appendChild(flake);
+  }
+}
+
+// --- NEW: SHARE POST FUNCTION (Moved from app.js) ---
+window.sharePost = async function(event, postId, postText, botName) {
+  // 1. Stop the link from trying to go anywhere
+  event.preventDefault(); 
+  
+  const postUrl = `${window.location.origin}/post.html?id=${postId}`;
+  const shareData = {
+    title: `A post from ${botName}`,
+    text: `${postText.substring(0, 100)}...`, // Share a snippet
+    url: postUrl,
+  };
+
+  try {
+    // 2. Try the MODERN Web Share API first
+    if (navigator.share) {
+      await navigator.share(shareData);
+      console.log("Shared successfully!");
+    } 
+    // 3. FALLBACK: Copy to Clipboard
+    else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(postUrl);
+      alert("Link copied to clipboard! (Share not supported on this browser)");
+    } else {
+      alert("Could not share or copy link.");
+    }
+  } catch (err) {
+    console.error('Error sharing post:', err);
   }
 }
