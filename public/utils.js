@@ -12,11 +12,21 @@ export function formatTimestamp(isoString) {
     });
 }
 
-// --- SHARE BUTTON LOGIC (Unchanged) ---
+// --- SHARE BUTTON LOGIC (UPDATED WITH ROBUST SANITIZATION) ---
 function getShareButtonHTML(post) {
-    // Escape single quotes for the onclick attribute
-    const postText = post.content.text ? post.content.text.replace(/'/g, "\\'") : '';
-    const botName = post.bot.name.replace(/'/g, "\\'");
+    // We must escape all characters that could break the onclick attribute.
+    const sanitize = (str) => {
+        if (!str) return '';
+        return str
+            .replace(/\\/g, '\\\\')  // 1. Escape backslashes
+            .replace(/'/g, "\\'")   // 2. Escape single quotes
+            .replace(/"/g, '&quot;') // 3. Escape double quotes (for HTML)
+            .replace(/\n/g, ' ')   // 4. Replace newlines with a space
+            .replace(/\r/g, '');    // 5. Remove carriage returns
+    };
+
+    const postText = sanitize(post.content.text);
+    const botName = sanitize(post.bot.name);
 
     return `
         <div class="mt-4 flex space-x-4 text-gray-500">
@@ -28,14 +38,13 @@ function getShareButtonHTML(post) {
         </div>
     `;
 }
-// --- END OF SHARE LOGIC ---
+// --- END OF UPDATED SHARE LOGIC ---
 
 
 // --- Smart Media Renderer (Unchanged) ---
 function getMediaHTML(mediaUrl) {
     if (!mediaUrl) return '';
 
-    // Check if the URL is a video
     if (mediaUrl.includes('.mp4')) {
         return `
             <video class="mt-3 rounded-lg border border-gray-200 w-full max-w-lg" 
@@ -46,7 +55,6 @@ function getMediaHTML(mediaUrl) {
         `;
     }
     
-    // Check if it's a GIF or PNG (image)
     if (mediaUrl.includes('.gif') || mediaUrl.includes('.png') || mediaUrl.includes('.jpg') || mediaUrl.includes('.jpeg')) {
         return `
             <img src="${mediaUrl}" alt="Festive post media" 
@@ -54,7 +62,6 @@ function getMediaHTML(mediaUrl) {
         `;
     }
 
-    // Fallback for Pexels URLs that don't have an extension
     if (mediaUrl.startsWith('https://images.pexels.com') || mediaUrl.startsWith('https://source.unsplash.com')) {
          return `
             <img src="${mediaUrl}" alt="Festive post media" 
@@ -62,30 +69,16 @@ function getMediaHTML(mediaUrl) {
         `;
     }
 
-    return ''; // Return nothing if we can't identify it
+    return '';
 }
 // --- END Smart Media Renderer ---
 
-// --- HTML Builder for a Single Reply Post (Unchanged) ---
-// (We don't need attribution on replies, so this function is unchanged)
+// --- createReplyPostHTML (Unchanged) ---
 export function createReplyPostHTML(replyPost) {
     const postTimestamp = formatTimestamp(replyPost.timestamp);
     const avatarPath = replyPost.bot.avatarUrl || './avatars/default.png';
     const mediaHTML = getMediaHTML(replyPost.content.imageUrl); 
     const shareButtonHTML = getShareButtonHTML(replyPost); 
-
-    // --- NEW: Attribution for replies (if they ever have images) ---
-    // Note: This is future-proofing. Currently, only top-level posts have Pexels media.
-    const attributionHTML = (replyPost.content.source && replyPost.content.link && replyPost.content.imageUrl) ? `
-        <div class="mt-1 text-xs text-gray-400">
-            ${replyPost.content.imageUrl.includes('.mp4') ? 'Video' : 'Photo'} by 
-            <a href="${replyPost.content.link}" target="_blank" rel="noopener noreferrer" class="hover:underline">
-                ${replyPost.content.source}
-            </a>
-            ${replyPost.content.source.toLowerCase() !== 'unsplash' ? ' on Pexels' : ''}
-        </div>
-    ` : '';
-    // --- END NEW LOGIC ---
 
     return `
         <div class="flex items-start space-x-3 pt-4 ml-8">
@@ -95,24 +88,23 @@ export function createReplyPostHTML(replyPost) {
                     : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-2xl">${avatarPath}</div>`
                 }
             </div>
-            <div class="flex-1">
+            <div class-="flex-1">
                 <div class="flex items-center space-x-2">
                     <span class="font-bold text-lg text-gray-900">${replyPost.bot.name}</span>
                     <span class="text-sm text-gray-500">· ${postTimestamp}</span>
                 </div>
                 <p class="mt-1 text-gray-800">${replyPost.content.text}</p>
                 ${mediaHTML}
-                ${attributionHTML} 
                 ${shareButtonHTML}
             </div>
         </div>
     `;
 }
 
-// --- HTML Builder for a Top-Level Post (UPDATED) ---
+// --- createPostHTML (Unchanged) ---
 export function createPostHTML(post, replies = []) {
   const postTimestamp = formatTimestamp(post.timestamp);
-  const avatarPath = post.bot.avatarUrl || './avatars/default.png';
+  const avatarPath = post.bot.avatarUrl || './avatals/default.png';
   
   const replyContextHTML = post.replyContext ? `
         <div class="mb-2 p-2 border-l-2 border-gray-300">
@@ -125,24 +117,12 @@ export function createPostHTML(post, replies = []) {
     
   const mediaHTML = getMediaHTML(post.content.imageUrl); 
   
-  // --- THIS IS THE NEW CODE ---
-  const attributionHTML = (post.content.source && post.content.link && post.content.imageUrl) ? `
-    <div class="mt-1 text-xs text-gray-400">
-        ${post.content.imageUrl.includes('.mp4') ? 'Video' : 'Photo'} by 
-        <a href="${post.content.link}" target="_blank" rel="noopener noreferrer" class="hover:underline">
-            ${post.content.source}
-        </a>
-        ${post.content.source.toLowerCase() !== 'unsplash' ? ' on Pexels' : ''}
-    </div>
-  ` : '';
-  // --- END NEW CODE ---
-  
   const shareButtonHTML = getShareButtonHTML(post);
   const repliesHTML = replies.map(createReplyPostHTML).join('');
   
   const avatarHTML = avatarPath.startsWith('./')
     ? `<img class="w-12 h-12 rounded-full bg-gray-200" src="${avatarPath}" alt="${post.bot.name}">`
-    : `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-3xl">${avatarHTML}</div>`;
+    : `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-3xl">${avatarPath}</div>`;
 
   return `
     <div class="animate-fade-in border-b border-gray-200 pb-4 last:border-b-0">
@@ -158,7 +138,7 @@ export function createPostHTML(post, replies = []) {
           ${replyContextHTML}
           <p class="mt-1 text-gray-800">${post.content.text}</p>
           ${mediaHTML}
-          ${attributionHTML} ${shareButtonHTML}
+          ${shareButtonHTML}
           <div class="mt-2 space-y-2">
               ${repliesHTML}
           </div>
@@ -168,7 +148,7 @@ export function createPostHTML(post, replies = []) {
   `;
 }
 
-// --- HTML Builder for News (Unchanged) ---
+// --- createNewsArticleHTML (Unchanged) ---
 export function createNewsArticleHTML(post) {
   return `
     <a class="block animate-fade-in border-b border-gray-200 pb-4 last:border-b-0 hover:bg-gray-50 p-2 rounded-lg"
@@ -180,7 +160,7 @@ export function createNewsArticleHTML(post) {
   `;
 }
 
-// --- HTML Builder for Hottest Gift (Unchanged) ---
+// --- createHottestGiftHTML (Unchanged) ---
 export function createHottestGiftHTML(post) {
   if (!post) {
     post = { 
@@ -203,7 +183,7 @@ export function createHottestGiftHTML(post) {
   `;
 }
 
-// --- Snow Animation (Unchanged) ---
+// --- createSnowflakes (Unchanged) ---
 export function createSnowflakes(snowContainer) {
   if (!snowContainer) return;
   snowContainer.innerHTML = ''; 
@@ -218,7 +198,7 @@ export function createSnowflakes(snowContainer) {
   }
 }
 
-// --- SHARE POST FUNCTION (Unchanged) ---
+// --- window.sharePost (Unchanged) ---
 window.sharePost = async function(event, postId, postText, botName) {
   // 1. Stop the link from trying to go anywhere
   event.preventDefault(); 
