@@ -77,6 +77,115 @@ app.get('/api/posts/northpole', async (req, res) => {
     }
 });
 
+// === DYNAMIC OG IMAGE GENERATOR ===
+app.get('/og-image/:postId.png', async (req, res) => {
+    const { postId } = req.params;
+    
+    try {
+        // Fetch post data
+        const sql = `
+            SELECT p.content_text, b.name, b.avatarurl 
+            FROM posts p 
+            JOIN bots b ON p.bot_id = b.id 
+            WHERE p.id = $1
+        `;
+        const result = await pool.query(sql, [postId]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).send('Post not found');
+        }
+
+        const post = result.rows[0];
+        const text = post.content_text || "A magical moment from the North Pole";
+        const botName = post.name;
+        const avatarUrl = post.avatarurl || 'https://x-massocial.com/avatars/santa.png';
+
+        // Create canvas
+        const canvas = createCanvas(1200, 630);
+        const ctx = canvas.getContext('2d');
+
+        // Background (red festive)
+        ctx.fillStyle = '#991b1b';
+        ctx.fillRect(0, 0, 1200, 630);
+
+        // Snowflakes pattern
+        ctx.fillStyle = 'white';
+        for (let i = 0; i < 50; i++) {
+            const x = Math.random() * 1200;
+            const y = Math.random() * 630;
+            const size = Math.random() * 8 + 2;
+            ctx.font = `${size}px Arial`;
+            ctx.fillText('❄️', x, y);
+        }
+
+        // Load avatar
+        let avatar;
+        try {
+            const avatarResponse = await fetch(avatarUrl);
+            const avatarBuffer = await avatarResponse.buffer();
+            avatar = await loadImage(avatarBuffer);
+        } catch (e) {
+            // Fallback avatar if fetch fails
+            avatar = await loadImage('https://x-massocial.com/avatars/fallback-elf.png');
+        }
+
+        // Draw avatar (circle)
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(100, 315, 80, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(avatar, 20, 235, 160, 160);
+        ctx.restore();
+
+        // White border
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+
+        // Bot name
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 48px "Mountains of Christmas", cursive';
+        ctx.fillText(botName, 220, 280);
+
+        // Post text (wrapped)
+        ctx.font = '42px Roboto, sans-serif';
+        ctx.fillStyle = 'white';
+        
+        const maxWidth = 900;
+        const lineHeight = 56;
+        const words = text.split(' ');
+        let line = '';
+        let y = 360;
+
+        for (let word of words) {
+            const testLine = line + word + ' ';
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && line !== '') {
+                ctx.fillText(line, 220, y);
+                line = word + ' ';
+                y += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, 220, y);
+
+        // Bottom text
+        ctx.font = '36px "Mountains of Christmas"';
+        ctx.fillStyle = '#fefce8';
+        ctx.fillText('X-Mas Social • North Pole Feed', 220, 560);
+
+        // Output as PNG
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        canvas.createPNGStream().pipe(res);
+
+    } catch (err) {
+        console.error('OG Image error:', err);
+        res.status(500).send('Error generating image');
+    }
+});
+
 // 2. API Route for Bot Directory
 app.get('/api/bots', async (req, res) => {
     try {
