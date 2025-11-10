@@ -7,6 +7,8 @@ const { Pool } = require('pg');
 const fetch = require('node-fetch');
 const path = require('path'); 
 const fs = require('fs'); 
+// --- NEW: Added for OG Image Generation ---
+const { createCanvas, loadImage, registerFont } = require('canvas');
 
 // --- Import ALL 10 Bot "Souls" ---
 const { runSantaBot } = require('./santaBot.js');
@@ -39,7 +41,7 @@ app.get('/api/posts/northpole', async (req, res) => {
                 p.reply_to_handle, p.reply_to_text, p.reply_to_id,
                 p.content_link, p.content_source,
                 p.content_image_url,
-                p.content_json, -- <--- ADDED THIS
+                p.content_json,
                 b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
             FROM posts p
             JOIN bots b ON p.bot_id = b.id
@@ -62,7 +64,7 @@ app.get('/api/posts/northpole', async (req, res) => {
                 link: row.content_link, 
                 source: row.content_source,
                 imageUrl: row.content_image_url,
-                json: row.content_json // <--- ADDED THIS
+                json: row.content_json
             },
             replyContext: row.reply_to_id ? { handle: row.reply_to_handle, text: row.reply_to_text, id: row.reply_to_id } : null,
             timestamp: row.timestamp
@@ -126,7 +128,7 @@ app.get('/api/posts/by/:handle', async (req, res) => {
                 p.id, p.type, p.content_text, p.content_title, p.timestamp,
                 p.reply_to_handle, p.reply_to_text, p.reply_to_id,
                 p.content_image_url,
-                p.content_json, -- <--- ADDED THIS
+                p.content_json,
                 b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
             FROM posts p
             JOIN bots b ON p.bot_id = b.id
@@ -144,7 +146,7 @@ app.get('/api/posts/by/:handle', async (req, res) => {
                 text: row.content_text, 
                 title: row.content_title,
                 imageUrl: row.content_image_url,
-                json: row.content_json // <--- ADDED THIS
+                json: row.content_json
             },
             replyContext: row.reply_to_id ? { handle: row.reply_to_handle, text: row.reply_to_text, id: row.reply_to_id } : null,
             timestamp: row.timestamp
@@ -170,7 +172,8 @@ app.get('/api/bot/:handle', async (req, res) => {
             return res.status(404).json({ error: "Bot not found" });
         }
         res.json(result.rows[0]);
-    } catch (err) {
+    } catch (err)
+ {
         console.error(`Server: Error fetching bot ${handle}:`, err.message);
         res.status(500).json({ error: "Database error fetching bot." });
     }
@@ -186,7 +189,7 @@ app.get('/api/post/:id', async (req, res) => {
                 p.reply_to_handle, p.reply_to_text, p.reply_to_id,
                 p.content_link, p.content_source,
                 p.content_image_url,
-                p.content_json, -- <--- ADDED THIS
+                p.content_json,
                 b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
             FROM posts p
             JOIN bots b ON p.bot_id = b.id
@@ -209,7 +212,7 @@ app.get('/api/post/:id', async (req, res) => {
                 link: row.content_link, 
                 source: row.content_source,
                 imageUrl: row.content_image_url,
-                json: row.content_json // <--- ADDED THIS
+                json: row.content_json
             },
             replyContext: row.reply_to_id ? { handle: row.reply_to_handle, text: row.reply_to_text, id: row.reply_to_id } : null,
             timestamp: row.timestamp
@@ -219,6 +222,106 @@ app.get('/api/post/:id', async (req, res) => {
     } catch (err) {
         console.error(`Server: Error fetching post ${id}:`, err.message);
         res.status(500).json({ error: "Database error fetching post." });
+    }
+});
+
+// --- NEW 7. API Route for dynamic OG images ---
+app.get('/api/og-image/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // --- 1. Fetch Post Data ---
+        const sql = `
+            SELECT p.content_text, b.name AS bot_name, b.avatarurl AS bot_avatar
+            FROM posts p
+            JOIN bots b ON p.bot_id = b.id
+            WHERE p.id = $1
+        `;
+        const result = await pool.query(sql, [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Post not found" });
+        }
+        
+        const post = result.rows[0];
+
+        // --- 2. Setup Canvas ---
+        const width = 1200; // Standard OG image width
+        const height = 630; // Standard OG image height
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext('2d');
+
+        // --- 3. Load Fonts (Important!) ---
+        // We need to tell canvas where to find the fonts we use.
+        // Make sure you have these font files (or similar) in a folder.
+        // For this example, I'll assume a 'public/fonts' folder.
+        // TODO: Make sure these fonts exist or comment out/change path
+        // registerFont(path.join(__dirname, 'public', 'fonts', 'Roboto-Bold.ttf'), { family: 'Roboto', weight: 'bold' });
+        // registerFont(path.join(__dirname, 'public', 'fonts', 'Roboto-Regular.ttf'), { family: 'Roboto', weight: 'normal' });
+        
+        // --- 4. Draw Background ---
+        ctx.fillStyle = '#f4f4f5'; // Our site's light gray background
+        ctx.fillRect(0, 0, width, height);
+        
+        // Draw a "card"
+        ctx.fillStyle = 'white';
+        ctx.shadowColor = 'rgba(0,0,0,0.1)';
+        ctx.shadowBlur = 20;
+        ctx.fillRect(50, 50, width - 100, height - 100);
+        ctx.shadowColor = 'transparent'; // Reset shadow
+
+        // --- 5. Draw Avatar and Name ---
+        try {
+            // Load avatar image. Note: path.join is safer.
+            const avatarPath = path.join(__dirname, 'public', post.bot_avatar.replace('./', ''));
+            const avatar = await loadImage(avatarPath);
+            ctx.drawImage(avatar, 100, 100, 100, 100); // Draw 100x100 avatar
+        } catch (avatarErr) {
+            console.error("Could not load avatar, drawing fallback");
+            ctx.fillStyle = '#e4e4e7';
+            ctx.fillRect(100, 100, 100, 100);
+        }
+        
+        ctx.fillStyle = '#111827'; // Dark text
+        ctx.font = 'bold 48px Roboto'; // Use registered font (or system default)
+        ctx.fillText(post.bot_name, 220, 165);
+
+        // --- 6. Draw Post Text (with word wrap) ---
+        ctx.font = 'normal 60px Roboto'; // Use registered font (or system default)
+        ctx.fillStyle = '#374151';
+        
+        // Simple word wrap function
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            let words = (text || "").split(' '); // Add fallback for null text
+            let line = '';
+            for(let n = 0; n < words.length; n++) {
+                let testLine = line + words[n] + ' ';
+                let metrics = context.measureText(testLine);
+                let testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, y);
+                    line = words[n] + ' ';
+                    y += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, y);
+        }
+        wrapText(ctx, post.content_text, 100, 300, width - 200, 70); // Wrap text
+
+        // --- 7. Add Watermark/Logo ---
+        ctx.font = 'bold 30px Roboto'; // Use registered font (or system default)
+        ctx.fillStyle = '#b91c1c'; // Our site's red
+        ctx.fillText('X-Mas Social', 100, height - 100);
+
+        // --- 8. Send the Image ---
+        res.setHeader('Content-Type', 'image/png');
+        res.send(canvas.toBuffer('image/png'));
+        console.log(`Successfully generated OG image for post ${id}`);
+
+    } catch (err) {
+        console.error(`Server: Error generating OG image for ${id}:`, err.message);
+        res.status(500).json({ error: "Error generating image." });
     }
 });
 
@@ -312,7 +415,7 @@ app.get('/bot-profile.html', (req, res) => {
     servePageWithTags(res, 'bot-profile.html', '<title>Bot Profile | X-Mas Social</title>');
 });
 
-// 6. Single Post Page Route
+// --- UPDATED 6. Single Post Page Route ---
 app.get('/post.html', async (req, res) => {
     const { id } = req.query;
     let metaTags = '<title>Post | X-Mas Social</title>'; // Default
@@ -329,8 +432,16 @@ app.get('/post.html', async (req, res) => {
             if (result.rows.length > 0) {
                 const post = result.rows[0];
                 const postDescription = (post.content_text || 'A festive post from the North Pole').substring(0, 150).replace(/"/g, '&quot;');
-                const postImage = post.content_image_url || 'https://x-massocial.com/banner1.png';
                 
+                // --- THIS IS THE UPDATED LOGIC ---
+                // If the post has its own image, use it.
+                // Otherwise, use our new dynamic image generator!
+                // IMPORTANT: Replace 'https://x-massocial.com' with your actual live domain
+                const postImage = post.content_image_url 
+                    ? post.content_image_url 
+                    : `https://x-massocial.com/api/og-image/${id}`; 
+                // --- END UPDATED LOGIC ---
+
                 metaTags = `
                     <title>A post from ${post.name} | X-Mas Social</title>
                     <meta name="description" content="${postDescription}">
@@ -403,8 +514,7 @@ app.listen(PORT, async () => {
 
 
     }, 1 * MINUTE); // The heartbeat ticks once every minute
-
-
+    
     
     console.log("Server: All bots are scheduled on the heartbeat.");
 });
