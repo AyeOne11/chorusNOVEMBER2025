@@ -5,8 +5,8 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const fetch = require('node-fetch');
-const path = require('path'); 
-const fs = require('fs'); 
+const path = require('path');
+const fs = require('fs');
 // --- NEW: Added for OG Image Generation ---
 const { createCanvas, loadImage, registerFont } = require('canvas');
 
@@ -26,7 +26,7 @@ app.use(cors());
 app.use(express.json());
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL, 
+    connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false } // For local testing
 });
 
@@ -46,7 +46,7 @@ app.get('/api/posts/northpole', async (req, res) => {
             FROM posts p
             JOIN bots b ON p.bot_id = b.id
             WHERE b.handle IN (
-                '@SantaClaus', '@MrsClaus', '@SprinklesElf', '@Rudolph', 
+                '@SantaClaus', '@MrsClaus', '@SprinklesElf', '@Rudolph',
                 '@HayleyKeeper', '@LoafyElf', '@ToyInsiderElf', '@HolidayNews', '@GrumbleElf','@NoelReels'
             )
             ORDER BY p.timestamp DESC
@@ -58,10 +58,10 @@ app.get('/api/posts/northpole', async (req, res) => {
             id: row.id,
             bot: { handle: row.bot_handle, name: row.bot_name, avatarUrl: row.bot_avatar },
             type: row.type,
-            content: { 
-                text: row.content_text, 
-                title: row.content_title, 
-                link: row.content_link, 
+            content: {
+                text: row.content_text,
+                title: row.content_title,
+                link: row.content_link,
                 source: row.content_source,
                 imageUrl: row.content_image_url,
                 json: row.content_json
@@ -104,7 +104,7 @@ app.get('/api/posts/giftguide', async (req, res) => {
             LIMIT 50
         `;
         const result = await pool.query(sql);
-        
+
         const formattedPosts = result.rows.map(row => ({
             id: row.id,
             type: row.type,
@@ -137,13 +137,13 @@ app.get('/api/posts/by/:handle', async (req, res) => {
             LIMIT 50
         `;
         const result = await pool.query(sql, [handle]);
-        
+
         const formattedPosts = result.rows.map(row => ({
             id: row.id,
             bot: { handle: row.bot_handle, name: row.bot_name, avatarUrl: row.bot_avatar },
             type: row.type,
-            content: { 
-                text: row.content_text, 
+            content: {
+                text: row.content_text,
                 title: row.content_title,
                 imageUrl: row.content_image_url,
                 json: row.content_json
@@ -200,16 +200,16 @@ app.get('/api/post/:id', async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ error: "Post not found" });
         }
-        
+
         const row = result.rows[0];
         const formattedPost = {
             id: row.id,
             bot: { handle: row.bot_handle, name: row.bot_name, avatarUrl: row.bot_avatar },
             type: row.type,
-            content: { 
-                text: row.content_text, 
-                title: row.content_title, 
-                link: row.content_link, 
+            content: {
+                text: row.content_text,
+                title: row.content_title,
+                link: row.content_link,
                 source: row.content_source,
                 imageUrl: row.content_image_url,
                 json: row.content_json
@@ -225,7 +225,7 @@ app.get('/api/post/:id', async (req, res) => {
     }
 });
 
-// --- NEW 7. API Route for dynamic OG images ---
+// 7. API Route for dynamic OG images
 app.get('/api/og-image/:id', async (req, res) => {
     const { id } = req.params;
 
@@ -241,7 +241,7 @@ app.get('/api/og-image/:id', async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ error: "Post not found" });
         }
-        
+
         const post = result.rows[0];
 
         // --- 2. Setup Canvas ---
@@ -251,17 +251,14 @@ app.get('/api/og-image/:id', async (req, res) => {
         const ctx = canvas.getContext('2d');
 
         // --- 3. Load Fonts (Important!) ---
-        // We need to tell canvas where to find the fonts we use.
-        // Make sure you have these font files (or similar) in a folder.
-        // For this example, I'll assume a 'public/fonts' folder.
         // TODO: Make sure these fonts exist or comment out/change path
         // registerFont(path.join(__dirname, 'public', 'fonts', 'Roboto-Bold.ttf'), { family: 'Roboto', weight: 'bold' });
         // registerFont(path.join(__dirname, 'public', 'fonts', 'Roboto-Regular.ttf'), { family: 'Roboto', weight: 'normal' });
-        
+
         // --- 4. Draw Background ---
         ctx.fillStyle = '#f4f4f5'; // Our site's light gray background
         ctx.fillRect(0, 0, width, height);
-        
+
         // Draw a "card"
         ctx.fillStyle = 'white';
         ctx.shadowColor = 'rgba(0,0,0,0.1)';
@@ -271,15 +268,15 @@ app.get('/api/og-image/:id', async (req, res) => {
 
         // --- 5. Draw Avatar and Name ---
         try {
-            // Load avatar image. Note: path.join is safer.
-           // --- THIS IS THE FIX ---
-const avatar = await loadImage(`https://x-massocial.com${post.bot_avatar.replace('./', '/')}`);
+            // We load the full public URL, not a local file path.
+            const avatar = await loadImage(`https://x-massocial.com${post.bot_avatar.replace('./', '/')}`);
+            ctx.drawImage(avatar, 100, 100, 100, 100); // Draw 100x100 avatar
         } catch (avatarErr) {
             console.error("Could not load avatar, drawing fallback");
             ctx.fillStyle = '#e4e4e7';
             ctx.fillRect(100, 100, 100, 100);
         }
-        
+
         ctx.fillStyle = '#111827'; // Dark text
         ctx.font = 'bold 48px Roboto'; // Use registered font (or system default)
         ctx.fillText(post.bot_name, 220, 165);
@@ -287,7 +284,7 @@ const avatar = await loadImage(`https://x-massocial.com${post.bot_avatar.replace
         // --- 6. Draw Post Text (with word wrap) ---
         ctx.font = 'normal 60px Roboto'; // Use registered font (or system default)
         ctx.fillStyle = '#374151';
-        
+
         // Simple word wrap function
         function wrapText(context, text, x, y, maxWidth, lineHeight) {
             let words = (text || "").split(' '); // Add fallback for null text
@@ -331,10 +328,10 @@ const avatar = await loadImage(`https://x-massocial.com${post.bot_avatar.replace
 async function servePageWithTags(res, filePath, metaTags) {
     try {
         let html = await fs.promises.readFile(path.join(__dirname, 'public', filePath), 'utf8');
-        
+
         // Use a placeholder that is less likely to be in the HTML
         const PLACEHOLDER = '<meta name="seo-placeholder" content="tags-go-here">';
-        
+
         // Check if our specific placeholder exists
         if (html.includes(PLACEHOLDER)) {
             html = html.replace(PLACEHOLDER, metaTags);
@@ -342,11 +339,11 @@ async function servePageWithTags(res, filePath, metaTags) {
             // Fallback: replace the default <title> tag, which is less ideal
             html = html.replace(/<title>.*<\/title>/, metaTags);
         }
-        
+
         res.send(html);
     } catch (err) {
         console.error(`Server: Error reading ${filePath}:`, err.message);
-        res.status(404).send('Page not found'); // Send 404 if file not found
+        res.status(4G_GIFT).send('Page not found'); // Send 404 if file not found
     }
 }
 
@@ -414,11 +411,11 @@ app.get('/bot-profile.html', (req, res) => {
     servePageWithTags(res, 'bot-profile.html', '<title>Bot Profile | X-Mas Social</title>');
 });
 
-// --- UPDATED 6. Single Post Page Route ---
+// 6. Single Post Page Route
 app.get('/post.html', async (req, res) => {
     const { id } = req.query;
     let metaTags = '<title>Post | X-Mas Social</title>'; // Default
-    
+
     if (id) {
         try {
             const sql = `
@@ -431,14 +428,14 @@ app.get('/post.html', async (req, res) => {
             if (result.rows.length > 0) {
                 const post = result.rows[0];
                 const postDescription = (post.content_text || 'A festive post from the North Pole').substring(0, 150).replace(/"/g, '&quot;');
-                
+
                 // --- THIS IS THE UPDATED LOGIC ---
                 // If the post has its own image, use it.
                 // Otherwise, use our new dynamic image generator!
                 // IMPORTANT: Replace 'https://x-massocial.com' with your actual live domain
-                const postImage = post.content_image_url 
-                    ? post.content_image_url 
-                    : `https://x-massocial.com/api/og-image/${id}`; 
+                const postImage = post.content_image_url
+                    ? post.content_image_url
+                    : `https://x-massocial.com/api/og-image/${id}`;
                 // --- END UPDATED LOGIC ---
 
                 metaTags = `
@@ -473,16 +470,19 @@ app.get('*', (req, res) => {
 });
 
 
-// === Server Start & Bot Scheduling (Unchanged) ===
+// === Server Start & Bot Scheduling (RUTH'S UPDATES 11/10) ===
 const PORT = process.env.PORT || 3000;
 const MINUTE = 60 * 1000;
 
 app.listen(PORT, async () => {
     console.log(`\n--- NORTH POLE FEED LIVE: http://localhost:${PORT} ---`);
-    
+
+
+
     // Define Bot Probabilities (per minute)
     const botSchedule = [
-        { name: "Santa", runner: runSantaBot, probability: (1 / 720) }, // 2 posts/day
+        // --- RUTH'S FIX: Santa frequency increased to 3/day ---
+        { name: "Santa", runner: runSantaBot, probability: (1 / 480) }, // 3 posts/day
         { name: "Mrs. Claus", runner: runMrsClausBot, probability: (1 / 480) }, // 3 posts/day
         { name: "Sprinkles", runner: runSprinklesBot, probability: (1 / 288) }, // 5 posts/day
         { name: "Rudolph", runner: runRudolphBot, probability: (1 / 288) }, // 5 posts/day
@@ -490,8 +490,8 @@ app.listen(PORT, async () => {
         { name: "Loafy", runner: runLoafyBot, probability: (1 / 288) }, // 5 posts/day
         { name: "Grumble", runner: runGrumbleBot, probability: (1 / 288) }, // 5 posts/day
         { name: "Holiday News", runner: runHolidayNewsBot, probability: (1 / 180) }, // 8 posts/day
-        { name: "Toy Insider", runner: runToyInsiderBot, probability: (1 / 1440) },
-        // Noel Reels: 1 post/day. (1 / 1440) = 1 in 1440 chance per minute
+        // --- RUTH'S FIX: Toy Insider frequency increased to 5/day to kill Giggle-Bot ---
+        { name: "Toy Insider", runner: runToyInsiderBot, probability: (1 / 288) }, // 5 posts/day
         { name: "Noel Reels", runner: runNoelReelsBot, probability: (1 / 1440) } // 1 post/day
     ];
 
@@ -500,7 +500,7 @@ app.listen(PORT, async () => {
     // The 1-Minute Heartbeat
     setInterval(() => {
         console.log(`\n--- Heartbeat Tick --- ${new Date().toLocaleTimeString()} ---`);
-        
+
         botSchedule.forEach(bot => {
             if (Math.random() < bot.probability) {
                 console.log(`>>> ${bot.name}'s turn! Running cycle...`);
@@ -513,8 +513,7 @@ app.listen(PORT, async () => {
 
 
     }, 1 * MINUTE); // The heartbeat ticks once every minute
-    
-    
+
+
     console.log("Server: All bots are scheduled on the heartbeat.");
 });
-
