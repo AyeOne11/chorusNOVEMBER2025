@@ -10,28 +10,39 @@ require('dotenv').config();
 const BOT_HANDLE = "@HayleyKeeper";
 const SYSTEM_INSTRUCTION = "You are Hayley, the elf in charge of caring for all of Santa's reindeer. You are gentle and kind. You post short, sweet updates about the reindeer's health, their favorite snacks (oats and carrots!), and how their flight practice is going.";
 
-// Strict Prompts (85% chance)
+// --- PROMPTS (TEXT-ONLY) ---
 const REPLY_STRICT = (originalPost) => `You are Hayley the Reindeer Keeper. You are replying to this post: "${originalPost}". Write a short, gentle, and kind reply (1-2 sentences). **Important:** Do NOT start your reply with filler words like 'Oh,', 'Well,', 'Ah,', or 'So,'.`;
 const NEW_TEXT_STRICT = "Write a short, sweet update (1-2 sentences) about the reindeer. **Important:** Do NOT start your post with filler words like 'Oh,', 'Well,', 'Ah,', or 'So,'.";
+const REPLY_NATURAL = (originalPost) => `You are Hayley the Reindeer Keeper. You are replying to this post: "${originalPost}". Write a short, gentle, and kind reply (1-2 sentences).`;
+const NEW_TEXT_NATURAL = "Write a short, sweet update (1-2 sentences) about the reindeer.";
+
+
+// --- RUTH'S FIX 11/10: Stricter image prompts to prevent office parties. ---
+// --- UPDATED IMAGE PROMPTS (STRICT) ---
 const NEW_IMAGE_STRICT = `
     You are "Hayley the Reindeer Keeper".
     Task:
     1. Generate a short, sweet, and caring post (1-2 sentences) about reindeer for the "text" field. **Important:** Do NOT start this text with filler words.
-    2. Generate ONE concise keyword (1-3 words) for an image search for the "visual" field (e.g., "reindeer", "caribou", "snowy stable", "aurora").
+    2. Generate ONE single, *literal* keyword (1-2 words) for an image search for the "visual" field.
+       **RULES:**
+       * MUST be a physical noun (e.g., "reindeer", "caribou", "snowy stable", "oats", "aurora").
+       * Do NOT use abstract concepts like 'happiness' or 'festive' or 'eating'.
     Response MUST be ONLY valid JSON: { "text": "...", "visual": "..." }
 `;
 
-// Natural Prompts (15% chance)
-const REPLY_NATURAL = (originalPost) => `You are Hayley the Reindeer Keeper. You are replying to this post: "${originalPost}". Write a short, gentle, and kind reply (1-2 sentences).`;
-const NEW_TEXT_NATURAL = "Write a short, sweet update (1-2 sentences) about the reindeer.";
+// --- UPDATED IMAGE PROMPTS (NATURAL) ---
 const NEW_IMAGE_NATURAL = `
     You are "Hayley the Reindeer Keeper".
     Task:
     1. Generate a short, sweet, and caring post (1-2 sentences) about reindeer for the "text" field.
-    2. Generate ONE concise keyword (1-3 words) for an image search for the "visual" field (e.g., "reindeer", "caribou", "snowy stable", "aurora").
+    2. Generate ONE single, *literal* keyword (1-2 words) for an image search for the "visual" field.
+       **RULES:**
+       * MUST be a physical noun (e.g., "reindeer", "caribou", "snowy stable", "oats", "aurora").
+       * Do NOT use abstract concepts like 'happiness' or 'festive' or 'eating'.
     Response MUST be ONLY valid JSON: { "text": "...", "visual": "..." }
 `;
-// --- END PERSONALITY ---
+// --- END RUTH'S FIX ---
+
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY; 
@@ -114,7 +125,8 @@ async function generateAIText(prompt, instruction) {
 // Pexels function (UPDATED to return object)
 async function fetchImageFromPexels(visualQuery) {
     log(BOT_HANDLE, `Fetching Pexels image for: ${visualQuery}`);
-    const query = visualQuery || "reindeer OR caribou";
+    // --- RUTH'S FIX 11/10: Default query is now hyper-specific ---
+    const query = visualQuery || "reindeer";
     const searchUrl = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape`;
     
     try {
