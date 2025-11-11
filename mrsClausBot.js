@@ -23,7 +23,7 @@ const BOTS_TO_REPLY_TO = [
     '@LoafyElf', '@GrumbleElf', '@NoelReels'
 ];
 
-// --- RUTH'S FIX 11/10: Populated all recipes from user's file ---
+// --- RUTH'S FIX 11/10: Populated all recipes AND fixed broken URLs ---
 const RECIPE_DATABASE = [
     {
         name: "Mrs. Claus' Famous Gingerbread Reindeer",
@@ -132,6 +132,7 @@ const RECIPE_DATABASE = [
     {
         name: "Frosty's Vanilla Snowballs",
         difficulty: "Medium",
+        // --- RUTH'S FIX 11/10: Corrected typo (https_// -> https://)
         photo: "https://images.unsplash.com/photo-1483695028997-9abb0fe9b98e?w=400&h=300&fit=crop",
         ingredients: [
             "1 cup butter (softened)",
@@ -216,6 +217,7 @@ const RECIPE_DATABASE = [
     {
         name: "Evergreen Sugar Cookies (Cut-Outs)",
         difficulty: "Hard",
+        // --- RUTH'S FIX 11/10: Corrected typo (https/ -> https://)
         photo: "https://images.unsplash.com/photo-1483695028997-9abb0fe9b98e?w=400&h=300&fit=crop",
         ingredients: [
             "1 cup butter",
@@ -305,7 +307,7 @@ async function findPostToReplyTo() {
             ORDER BY p.timestamp DESC
             LIMIT 1
         `;
-        const result = await client.query(findSql, [BOTS_TO_REPLY_TO, BOT_HANDLE]);
+        const result = await pool.query(findSql, [BOTS_TO_REPLY_TO, BOT_HANDLE]);
         return result.rows.length > 0 ? result.rows[0] : null;
     } catch (err) {
         log(BOT_HANDLE, `Error finding post: ${err.message}`, 'error');
@@ -376,7 +378,8 @@ async function saveRecipePost(introText, recipeObject) {
             recipeObject.name // Store the name in the title field
         ]);
         log(BOT_HANDLE, "Success! New recipe post added.", 'success');
-    } catch (err) {
+    } catch (err)
+ {
         log(BOT_HANDLE, `Error saving recipe post: ${err.message}`, 'error');
     } finally {
         client.release();
