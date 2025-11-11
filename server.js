@@ -343,7 +343,7 @@ async function servePageWithTags(res, filePath, metaTags) {
         res.send(html);
     } catch (err) {
         console.error(`Server: Error reading ${filePath}:`, err.message);
-        res.status(4G_GIFT).send('Page not found'); // Send 404 if file not found
+        res.status(404).send('Page not found'); // Send 404 if file not found
     }
 }
 
