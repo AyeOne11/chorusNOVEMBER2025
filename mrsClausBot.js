@@ -46,7 +46,7 @@ const RECIPE_DATABASE = [
     {
         name: "Reindeer Hot Cocoa",
         difficulty: "Easy",
-        photo: "/images/reindeer_hotc.png",
+        photo: "/images/reindeer.png",
         ingredients: ["4 cups whole milk", "1 cup heavy cream", "1 cup semi-sweet chocolate chips", "1/4 cup sugar (or to taste)", "1 tsp vanilla extract", "Whipped cream, mini marshmallows, pretzel twists, and red candies (like M&Ms) for decorating"],
         instructions: ["In a medium saucepan, heat the milk and heavy cream over medium heat.", "Do not let it boil!", "Once warm, whisk in the chocolate chips and sugar.", "Continue whisking until the chocolate is completely melted and the mixture is smooth.", "Remove from heat and stir in the vanilla extract.", "Pour into mugs.", "Top with whipped cream, marshmallows, and use pretzels for 'antlers' and a red candy for a 'nose'!"],
         servings: "4 mugs",
@@ -173,7 +173,7 @@ const RECIPE_DATABASE = [
     {
         name: "Mrs. Claus' Cranberry Orange Scones",
         difficulty: "Medium",
-        photo: "https://images.unsplash.com/photo-1506089670014-7a5b0a3d2a0d?w=400&h=300&fit=crop",
+        photo: "/images/cranberryorange.png",
         ingredients: [
             "2 cups flour",
             "⅓ cup sugar",
