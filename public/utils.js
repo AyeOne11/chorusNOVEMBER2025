@@ -30,7 +30,7 @@ function getShareButtonHTML(post) {
 
     return `
         <div class="mt-4 flex space-x-4 text-gray-500">
-            <button class="flex items-center space-x-1 hover:text-blue-500" 
+            <button class="flex items-center space-x-1 hover:text-blue-500"
                     onclick="sharePost(event, '${post.id}', '${postText}', '${botName}')">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.23-.09.46-.09.7 0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3z"></path></svg>
                 <span>Share</span>
@@ -48,18 +48,18 @@ function getMediaHTML(mediaUrl) {
     // Check if the URL is a video
     if (mediaUrl.includes('.mp4')) {
         return `
-            <video class="mt-3 rounded-lg border border-gray-200 w-full max-w-lg" 
+            <video class="mt-3 rounded-lg border border-gray-200 w-full max-w-lg"
                    loop autoplay muted playsinline>
                 <source src="${mediaUrl}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
         `;
     }
-    
+
     // Check if it's a GIF or PNG (image)
     if (mediaUrl.includes('.gif') || mediaUrl.includes('.png') || mediaUrl.includes('.jpg') || mediaUrl.includes('.jpeg')) {
         return `
-            <img src="${mediaUrl}" alt="Festive post media" 
+            <img src="${mediaUrl}" alt="Festive post media"
                  class="mt-3 rounded-lg border border-gray-200 w-full max-w-lg">
         `;
     }
@@ -67,7 +67,7 @@ function getMediaHTML(mediaUrl) {
     // Fallback for Pexels URLs that don't have an extension
     if (mediaUrl.startsWith('https://images.pexels.com') || mediaUrl.startsWith('https://source.unsplash.com')) {
          return `
-            <img src="${mediaUrl}" alt="Festive post media" 
+            <img src="${mediaUrl}" alt="Festive post media"
                  class="mt-3 rounded-lg border border-gray-200 w-full max-w-lg">
         `;
     }
@@ -77,18 +77,17 @@ function getMediaHTML(mediaUrl) {
 // --- END Smart Media Renderer ---
 
 // --- HTML Builder for a Single Reply Post (Unchanged) ---
-// (We don't need attribution on replies, so this function is unchanged)
 export function createReplyPostHTML(replyPost) {
     const postTimestamp = formatTimestamp(replyPost.timestamp);
     const avatarPath = replyPost.bot.avatarUrl || './avatars/default.png';
-    const mediaHTML = getMediaHTML(replyPost.content.imageUrl); 
-    const shareButtonHTML = getShareButtonHTML(replyPost); 
+    const mediaHTML = getMediaHTML(replyPost.content.imageUrl);
+    const shareButtonHTML = getShareButtonHTML(replyPost);
 
     // --- NEW: Attribution for replies (if they ever have images) ---
     // Note: This is future-proofing. Currently, only top-level posts have Pexels media.
     const attributionHTML = (replyPost.content.source && replyPost.content.link && replyPost.content.imageUrl) ? `
         <div class="mt-1 text-xs text-gray-400">
-            ${replyPost.content.imageUrl.includes('.mp4') ? 'Video' : 'Photo'} by 
+            ${replyPost.content.imageUrl.includes('.mp4') ? 'Video' : 'Photo'} by
             <a href="${replyPost.content.link}" target="_blank" rel="noopener noreferrer" class="hover:underline">
                 ${replyPost.content.source}
             </a>
@@ -112,18 +111,53 @@ export function createReplyPostHTML(replyPost) {
                 </div>
                 <p class="mt-1 text-gray-800">${replyPost.content.text}</p>
                 ${mediaHTML}
-                ${attributionHTML} 
+                ${attributionHTML}
                 ${shareButtonHTML}
             </div>
         </div>
     `;
 }
 
-// --- HTML Builder for a Top-Level Post (UPDATED) ---
+// --- RUTH'S FIX 11/12: NEW FUNCTION TO RENDER RECIPES ---
+function createRecipePostHTML(post) {
+    const recipe = post.content.json;
+    if (!recipe) return ''; // Safety check
+
+    // Build lists
+    const ingredientsHTML = recipe.ingredients.map(item => `<li>${item}</li>`).join('');
+    const instructionsHTML = recipe.instructions.map(item => `<li>${item}</li>`).join('');
+
+    return `
+        <div class="recipe-card">
+            <div class="recipe-header">
+                <img src="${recipe.photo || 'https://images.unsplash.com/photo-1542384557-0145c35f2b18'}" alt="${recipe.name}">
+                <div class="recipe-header-text">
+                    <h3 class="recipe-title">${recipe.name}</h3>
+                    <div class="recipe-meta">
+                        <span><strong>Time:</strong> ${recipe.time}</span>
+                        <span><strong>Difficulty:</strong> ${recipe.difficulty}</span>
+                        <span><strong>Servings:</strong> ${recipe.servings}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="recipe-body">
+                <h4>Ingredients:</h4>
+                <ul>${ingredientsHTML}</ul>
+                <h4>Instructions:</h4>
+                <ol>${instructionsHTML}</ol>
+            </div>
+        </div>
+    `;
+}
+// --- END NEW FUNCTION ---
+
+
+// --- RUTH'S FIX 11/12: This function is now a "router" ---
+// It checks the post.type and calls the correct renderer.
 export function createPostHTML(post, replies = []) {
   const postTimestamp = formatTimestamp(post.timestamp);
   const avatarPath = post.bot.avatarUrl || './avatars/default.png';
-  
+
   const replyContextHTML = post.replyContext ? `
         <div class="mb-2 p-2 border-l-2 border-gray-300">
             <p class="text-sm text-gray-500">
@@ -132,24 +166,34 @@ export function createPostHTML(post, replies = []) {
             </p>
         </div>
     ` : '';
-    
-  const mediaHTML = getMediaHTML(post.content.imageUrl); 
-  
-  // --- THIS IS THE NEW CODE ---
-  const attributionHTML = (post.content.source && post.content.link && post.content.imageUrl) ? `
-    <div class="mt-1 text-xs text-gray-400">
-        ${post.content.imageUrl.includes('.mp4') ? 'Video' : 'Photo'} by 
-        <a href="${post.content.link}" target="_blank" rel="noopener noreferrer" class="hover:underline">
-            ${post.content.source}
-        </a>
-        ${post.content.source.toLowerCase() !== 'unsplash' ? ' on Pexels' : ''}
-    </div>
-  ` : '';
-  // --- END NEW CODE ---
-  
+
+  // --- NEW LOGIC: Check post type ---
+  let contentHTML = '';
+  if (post.type === 'recipe_post' && post.content.json) {
+    // It's a recipe!
+    contentHTML = createRecipePostHTML(post);
+  } else {
+    // It's a standard post (text, image, or video)
+    const mediaHTML = getMediaHTML(post.content.imageUrl);
+    const attributionHTML = (post.content.source && post.content.link && post.content.imageUrl) ? `
+      <div class="mt-1 text-xs text-gray-400">
+          ${post.content.imageUrl.includes('.mp4') ? 'Video' : 'Photo'} by
+          <a href="${post.content.link}" target="_blank" rel="noopener noreferrer" class="hover:underline">
+              ${post.content.source}
+          </a>
+          ${post.content.source.toLowerCase() !== 'unsplash' ? ' on Pexels' : ''}
+      </div>
+    ` : '';
+    contentHTML = `
+        ${mediaHTML}
+        ${attributionHTML}
+    `;
+  }
+  // --- END NEW LOGIC ---
+
   const shareButtonHTML = getShareButtonHTML(post);
   const repliesHTML = replies.map(createReplyPostHTML).join('');
-  
+
   const avatarHTML = avatarPath.startsWith('./')
     ? `<img class="w-12 h-12 rounded-full bg-gray-200" src="${avatarPath}" alt="${post.bot.name}">`
     : `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-3xl">${avatarHTML}</div>`;
@@ -167,8 +211,8 @@ export function createPostHTML(post, replies = []) {
           </div>
           ${replyContextHTML}
           <p class="mt-1 text-gray-800">${post.content.text}</p>
-          ${mediaHTML}
-          ${attributionHTML} ${shareButtonHTML}
+          
+          ${contentHTML} ${shareButtonHTML}
           <div class="mt-2 space-y-2">
               ${repliesHTML}
           </div>
@@ -193,18 +237,18 @@ export function createNewsArticleHTML(post) {
 // --- HTML Builder for Hottest Gift (Unchanged) ---
 export function createHottestGiftHTML(post) {
   if (!post) {
-    post = { 
-      content: { 
-        title: "The Giggle-Bot 5000!", 
+    post = {
+      content: {
+        title: "The Giggle-Bot 5000!",
         text: "It's a robot buddy that tells you a new joke every day! All the elves are trying to get one!",
         link: null,
         source: "The Workshop"
       }
     };
   }
-  
+
   return `
-    <a href="${post.content.link || '#'}" target="_blank" rel="noopener noreferrer" 
+    <a href="${post.content.link || '#'}" target="_blank" rel="noopener noreferrer"
        class="block animate-fade-in hover:bg-blue-50 p-2 -m-2 rounded-lg transition-colors">
       <h3 class="font-bold text-lg text-red-700">${post.content.title}</h3>
       <p class="mt-1 text-gray-800">${post.content.text}</p>
@@ -216,7 +260,7 @@ export function createHottestGiftHTML(post) {
 // --- Snow Animation (Unchanged) ---
 export function createSnowflakes(snowContainer) {
   if (!snowContainer) return;
-  snowContainer.innerHTML = ''; 
+  snowContainer.innerHTML = '';
   for (let i = 0; i < 100; i++) {
     const flake = document.createElement('div');
     flake.className = 'snowflake';
@@ -231,8 +275,8 @@ export function createSnowflakes(snowContainer) {
 // --- SHARE POST FUNCTION (Unchanged) ---
 window.sharePost = async function(event, postId, postText, botName) {
   // 1. Stop the link from trying to go anywhere
-  event.preventDefault(); 
-  
+  event.preventDefault();
+
   const postUrl = `${window.location.origin}/post.html?id=${postId}`;
   const shareData = {
     title: `A post from ${botName}`,
@@ -245,7 +289,7 @@ window.sharePost = async function(event, postId, postText, botName) {
     if (navigator.share) {
       await navigator.share(shareData);
       console.log("Shared successfully!");
-    } 
+    }
     // 3. FALLBACK: Copy to Clipboard
     else if (navigator.clipboard) {
       await navigator.clipboard.writeText(postUrl);
