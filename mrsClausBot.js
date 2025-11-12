@@ -28,7 +28,7 @@ const RECIPE_DATABASE = [
     {
         name: "Mrs. Claus' Famous Gingerbread Reindeer",
         difficulty: "Medium",
-        photo: "https://images.unsplash.com/photo-1606913563752-7b6b70f3b1fd?w=400&h=300&fit=crop",
+        photo: "/images/ginger_bread_deer.png",
         ingredients: ["1 cup butter, softened", "1 cup brown sugar", "1/2 cup molasses", "1 egg", "3 cups all-purpose flour", "1 tsp baking soda", "2 tsp ground ginger", "1 tsp cinnamon", "1/2 tsp cloves", "Raisins or candies for eyes"],
         instructions: ["In a large bowl, cream together the butter and brown sugar.", "Beat in the molasses and egg until well combined.", "In a separate bowl, whisk together the flour, baking soda, ginger, cinnamon, and cloves.", "Gradually add the dry ingredients to the wet ingredients and mix well.", "Cover the dough and chill for at least 1 hour.", "Preheat oven to 350°F (175°C).", "Roll out the dough on a floured surface and cut into reindeer shapes.", "Place on a baking sheet and bake for 8-10 minutes.", "Let cool and decorate with raisins!"],
         servings: "2 dozen",
@@ -37,7 +37,7 @@ const RECIPE_DATABASE = [
     {
         name: "Snowball Sugar Cookies",
         difficulty: "Easy",
-        photo: "https://images.unsplash.com/photo-1483695028997-9abb0fe9b98e?w=400&h=300&fit=crop",
+        photo: "/images/snow_ball_cookie.png",
         ingredients: ["1 cup butter, softened", "1/2 cup powdered sugar", "1 tsp vanilla extract", "2 cups all-purpose flour", "1/4 tsp salt", "1 cup chopped pecans (optional)", "More powdered sugar for rolling"],
         instructions: ["Preheat oven to 325°F (165°C).", "In a large bowl, cream the butter and 1/2 cup of powdered sugar until fluffy.", "Stir in the vanilla extract.", "In a separate bowl, whisk together the flour and salt.", "Gradually add the flour mixture to the butter mixture.", "Stir in the chopped pecans, if using.", "Shape the dough into 1-inch balls.", "Place on an ungreased baking sheet.", "Bake for 12-15 minutes, until the bottoms are lightly browned.", "Let cool for a few minutes, then roll in powdered sugar while still warm."],
         servings: "3 dozen",
@@ -46,7 +46,7 @@ const RECIPE_DATABASE = [
     {
         name: "Reindeer Hot Cocoa",
         difficulty: "Easy",
-        photo: "/images/rein_deer.png",
+        photo: "/images/reindeer-hot-cocoa.png",
         ingredients: ["4 cups whole milk", "1 cup heavy cream", "1 cup semi-sweet chocolate chips", "1/4 cup sugar (or to taste)", "1 tsp vanilla extract", "Whipped cream, mini marshmallows, pretzel twists, and red candies (like M&Ms) for decorating"],
         instructions: ["In a medium saucepan, heat the milk and heavy cream over medium heat.", "Do not let it boil!", "Once warm, whisk in the chocolate chips and sugar.", "Continue whisking until the chocolate is completely melted and the mixture is smooth.", "Remove from heat and stir in the vanilla extract.", "Pour into mugs.", "Top with whipped cream, marshmallows, and use pretzels for 'antlers' and a red candy for a 'nose'!"],
         servings: "4 mugs",
@@ -55,7 +55,7 @@ const RECIPE_DATABASE = [
     {
         name: "Elf-Made Peppermint Bark",
         difficulty: "Easy",
-        photo: "https://images.unsplash.com/photo-1606913563752-7b6b70f3b1fd?w=400&h=300&fit=crop",
+        photo: "/images/peppermint_bark.png",
         ingredients: [
             "12 oz dark chocolate",
             "12 oz white chocolate",
@@ -74,7 +74,7 @@ const RECIPE_DATABASE = [
     {
         name: "Reindeer Chow Snack Mix",
         difficulty: "Easy",
-        photo: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&h=300&fit=crop",
+        photo: "/images/christmas_crack.png",
         ingredients: [
             "3 cups rice cereal",
             "1 cup pretzel sticks",
@@ -94,7 +94,7 @@ const RECIPE_DATABASE = [
     {
         name: "Santa's Midnight Cinnamon Rolls",
         difficulty: "Easy",
-        photo: "https://images.unsplash.com/photo-1541592106381-b31e9678029f?w=400&h=300&fit=crop",
+        photo: "/images/santa_rolls.png",
         ingredients: [
             "1 can refrigerated cinnamon rolls",
             "¼ cup heavy cream",
@@ -113,7 +113,7 @@ const RECIPE_DATABASE = [
     {
         name: "Polar Bear Paw Cookies",
         difficulty: "Easy",
-        photo: "https://images.unsplash.com/photo-1499636136210-1b3c2c3e4d6e?w=400&h=300&fit=crop",
+        photo: "/images/polar_bear_paw_cookies.png",
         ingredients: [
             "1 cup peanut butter",
             "1 egg",
@@ -129,31 +129,11 @@ const RECIPE_DATABASE = [
         servings: "18 cookies",
         time: "20 min"
     },
-    {
-        name: "Frosty's Vanilla Snowballs",
-        difficulty: "Medium",
-        photo: "https://images.unsplash.com/photo-1483695028997-9abb0fe9b98e?w=400&h=300&fit=crop",
-        ingredients: [
-            "1 cup butter (softened)",
-            "½ cup powdered sugar",
-            "2 tsp vanilla",
-            "2 cups flour",
-            "1 cup finely chopped pecans",
-            "Extra powdered sugar for rolling"
-        ],
-        instructions: [
-            "Cream butter, sugar, and vanilla. Mix in flour and pecans.",
-            "Roll into 1-inch balls. Bake at 325°F for 15–18 min.",
-            "Roll warm cookies in powdered sugar — twice for snowy effect!",
-            "Store in a tin — they get better with time."
-        ],
-        servings: "3 dozen",
-        time: "35 min"
-    },
+   
     {
         name: "North Pole Hot Chocolate Bombs",
         difficulty: "Hard",
-        photo: "https://images.unsplash.com/photo-1606913563752-7b6b70f3b1fd?w=400&h=300&fit=crop",
+        photo: "/images/hot_chocolate_bombs.png",
         ingredients: [
             "Silicone sphere mold",
             "12 oz melting chocolate",
@@ -173,7 +153,7 @@ const RECIPE_DATABASE = [
     {
         name: "Mrs. Claus' Cranberry Orange Scones",
         difficulty: "Medium",
-        photo: "/images/cranberryorange.png",
+        photo: "/images/cranberry-orange-scones.png",
         ingredients: [
             "2 cups flour",
             "⅓ cup sugar",
@@ -195,7 +175,7 @@ const RECIPE_DATABASE = [
     {
         name: "Jingle Bell Jam Thumbprints",
         difficulty: "Medium",
-        photo: "https://images.unsplash.com/photo-1541592106381-b31e9678029f?w=400&h=300&fit=crop",
+        photo: "/images/jingle_bell_jam.png",
         ingredients: [
             "1 cup butter",
             "½ cup sugar",
@@ -239,7 +219,7 @@ const RECIPE_DATABASE = [
     {
         name: "Rudolph's Red Velvet Crinkles",
         difficulty: "Easy",
-        photo: "/images/RC2.png",
+        photo: "/images/rudolph-red-velvet-crinkle.png",
         ingredients: [
             "1 box red velvet cake mix",
             "2 eggs",
