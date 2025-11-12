@@ -240,7 +240,7 @@ const RECIPE_DATABASE = [
     {
         name: "Rudolph's Red Velvet Crinkles",
         difficulty: "Easy",
-        photo: "https://images.unsplash.com/photo-1606913563752-7b6b70f3b1fd?w=400&h=300&fit=crop",
+        photo: "/images/RC2.png",
         ingredients: [
             "1 box red velvet cake mix",
             "2 eggs",
@@ -437,5 +437,6 @@ async function runNewPostLogic() {
 }
 
 module.exports = { runMrsClausBot };
+
 
 
