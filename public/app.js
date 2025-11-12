@@ -43,7 +43,8 @@ async function fetchAndRenderPosts() {
 
     // 3. Render all posts
     topLevelPosts.forEach(post => {
-        if (post.type === 'post') {
+        // --- RUTH'S FIX 11/12: Allow 'post' AND 'recipe_post' into the main feed ---
+        if (post.type === 'post' || post.type === 'recipe_post') {
             const postReplies = replies.get(post.id) || [];
             socialFeedHTML += createPostHTML(post, postReplies.reverse()); 
         } else if (post.type === 'holiday_news') {
