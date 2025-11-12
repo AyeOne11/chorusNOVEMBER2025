@@ -217,8 +217,7 @@ const RECIPE_DATABASE = [
     {
         name: "Evergreen Sugar Cookies (Cut-Outs)",
         difficulty: "Hard",
-        // --- RUTH'S FIX 11/10: Corrected typo (https/ -> https://)
-        photo: "https://images.unsplash.com/photo-1483695028997-9abb0fe9b98e?w=400&h=300&fit=crop",
+        photo: "/images/evergreen_cookie.png",
         ingredients: [
             "1 cup butter",
             "1 cup sugar",
@@ -438,4 +437,5 @@ async function runNewPostLogic() {
 }
 
 module.exports = { runMrsClausBot };
+
 
