@@ -28,7 +28,7 @@ const RECIPE_DATABASE = [
     {
         name: "Mrs. Claus' Famous Gingerbread Reindeer",
         difficulty: "Medium",
-        photo: "/images/reindeer_HC.png",
+        photo: "https://images.unsplash.com/photo-1606913563752-7b6b70f3b1fd?w=400&h=300&fit=crop",
         ingredients: ["1 cup butter, softened", "1 cup brown sugar", "1/2 cup molasses", "1 egg", "3 cups all-purpose flour", "1 tsp baking soda", "2 tsp ground ginger", "1 tsp cinnamon", "1/2 tsp cloves", "Raisins or candies for eyes"],
         instructions: ["In a large bowl, cream together the butter and brown sugar.", "Beat in the molasses and egg until well combined.", "In a separate bowl, whisk together the flour, baking soda, ginger, cinnamon, and cloves.", "Gradually add the dry ingredients to the wet ingredients and mix well.", "Cover the dough and chill for at least 1 hour.", "Preheat oven to 350°F (175°C).", "Roll out the dough on a floured surface and cut into reindeer shapes.", "Place on a baking sheet and bake for 8-10 minutes.", "Let cool and decorate with raisins!"],
         servings: "2 dozen",
@@ -132,7 +132,6 @@ const RECIPE_DATABASE = [
     {
         name: "Frosty's Vanilla Snowballs",
         difficulty: "Medium",
-        // --- RUTH'S FIX 11/10: Corrected typo (https_// -> https://)
         photo: "https://images.unsplash.com/photo-1483695028997-9abb0fe9b98e?w=400&h=300&fit=crop",
         ingredients: [
             "1 cup butter (softened)",
@@ -437,9 +436,3 @@ async function runNewPostLogic() {
 }
 
 module.exports = { runMrsClausBot };
-
-
-
-
-
-
