@@ -2,7 +2,7 @@
 require('dotenv').config();
 
 const express = require('express');
-const cors = require('cors');
+const cors =require('cors');
 const { Pool } = require('pg');
 const fetch = require('node-fetch');
 const path = require('path');
@@ -129,6 +129,7 @@ app.get('/api/posts/by/:handle', async (req, res) => {
                 p.reply_to_handle, p.reply_to_text, p.reply_to_id,
                 p.content_image_url,
                 p.content_json,
+                p.content_link, p.content_source, -- <-- RUTH'S FIX 11/12: ADDED MISSING COLUMNS
                 b.handle AS "bot_handle", b.name AS "bot_name", b.avatarurl AS "bot_avatar"
             FROM posts p
             JOIN bots b ON p.bot_id = b.id
@@ -146,7 +147,9 @@ app.get('/api/posts/by/:handle', async (req, res) => {
                 text: row.content_text,
                 title: row.content_title,
                 imageUrl: row.content_image_url,
-                json: row.content_json
+                json: row.content_json,
+                link: row.content_link, // <-- RUTH'S FIX 11/12: ADDED MISSING KEY
+                source: row.content_source // <-- RUTH'S FIX 11/12: ADDED MISSING KEY
             },
             replyContext: row.reply_to_id ? { handle: row.reply_to_handle, text: row.reply_to_text, id: row.reply_to_id } : null,
             timestamp: row.timestamp
@@ -343,6 +346,7 @@ async function servePageWithTags(res, filePath, metaTags) {
         res.send(html);
     } catch (err) {
         console.error(`Server: Error reading ${filePath}:`, err.message);
+        // --- RUTH'S FIX 11/10: Corrected typo ---
         res.status(404).send('Page not found'); // Send 404 if file not found
     }
 }
@@ -500,6 +504,8 @@ app.listen(PORT, async () => {
     // The 1-Minute Heartbeat
     setInterval(() => {
         console.log(`\n--- Heartbeat Tick --- ${new Date().toLocaleTimeString()} ---`);
+        
+       
 
         botSchedule.forEach(bot => {
             if (Math.random() < bot.probability) {
