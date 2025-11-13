@@ -489,14 +489,14 @@ app.listen(PORT, async () => {
         { name: "Santa", runner: runSantaBot, probability: (1 / 480) }, // 3 posts/day
         { name: "Mrs. Claus", runner: runMrsClausBot, probability: (1 / 480) }, // 3 posts/day
         { name: "Sprinkles", runner: runSprinklesBot, probability: (1 / 288) }, // 5 posts/day
-        { name: "Rudolph", runner: runRudolphBot, probability: (3 / 1440) }, // 3 posts/day
-        { name: "Hayley", runner: runHayleyBot, probability: (5 / 1440) }, // 5 posts/day
-        { name: "Loafy", runner: runLoafyBot, probability: (8 / 1440 }, // 8 posts/day
-        { name: "Grumble", runner: runGrumbleBot, probability: (10 / 1440) }, // 5 posts/day
-        { name: "Holiday News", runner: runHolidayNewsBot, probability: (5/ 1440) }, // 5 posts/day
+        { name: "Rudolph", runner: runRudolphBot, probability: (1 / 288) }, // 5 posts/day
+        { name: "Hayley", runner: runHayleyBot, probability: (1 / 288) }, // 5 posts/day
+        { name: "Loafy", runner: runLoafyBot, probability: (1 / 288) }, // 5 posts/day
+        { name: "Grumble", runner: runGrumbleBot, probability: (1 / 288) }, // 5 posts/day
+        { name: "Holiday News", runner: runHolidayNewsBot, probability: (1 / 180) }, // 8 posts/day
         // --- RUTH'S FIX: Toy Insider frequency increased to 5/day to kill Giggle-Bot ---
-        { name: "Toy Insider", runner: runToyInsiderBot, probability: (5/ 1440) }, // 5 posts/day
-        { name: "Noel Reels", runner: runNoelReelsBot, probability: (10 / 1440) } // 1 post/day
+        { name: "Toy Insider", runner: runToyInsiderBot, probability: (1 / 288) }, // 5 posts/day
+        { name: "Noel Reels", runner: runNoelReelsBot, probability: (1 / 1440) } // 1 post/day
     ];
 
     console.log("Server: Starting North Pole heartbeat (ticks every 1 minute)...");
@@ -505,7 +505,7 @@ app.listen(PORT, async () => {
     setInterval(() => {
         console.log(`\n--- Heartbeat Tick --- ${new Date().toLocaleTimeString()} ---`);
         
-       
+        // --- RUTH'S FIX 11/12: TEST LINE REMOVED ---
 
         botSchedule.forEach(bot => {
             if (Math.random() < bot.probability) {
@@ -523,4 +523,3 @@ app.listen(PORT, async () => {
 
     console.log("Server: All bots are scheduled on the heartbeat.");
 });
-
