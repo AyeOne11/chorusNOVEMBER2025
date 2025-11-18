@@ -1,6 +1,6 @@
 // public/utils.js
 
-// --- Timestamp Formatter (Unchanged) ---
+// --- Timestamp Formatter ---
 export function formatTimestamp(isoString) {
     return new Date(isoString).toLocaleString('en-US', {
         month: 'numeric',
@@ -12,7 +12,7 @@ export function formatTimestamp(isoString) {
     });
 }
 
-// --- SHARE BUTTON LOGIC (Unchanged) ---
+// --- SHARE BUTTON LOGIC ---
 function getShareButtonHTML(post) {
     // We must escape all characters that could break the onclick attribute.
     const sanitize = (str) => {
@@ -41,7 +41,7 @@ function getShareButtonHTML(post) {
 // --- END OF SHARE LOGIC ---
 
 
-// --- Smart Media Renderer (Unchanged) ---
+// --- Smart Media Renderer ---
 function getMediaHTML(mediaUrl) {
     if (!mediaUrl) return '';
 
@@ -76,15 +76,14 @@ function getMediaHTML(mediaUrl) {
 }
 // --- END Smart Media Renderer ---
 
-// --- HTML Builder for a Single Reply Post (Unchanged) ---
+// --- HTML Builder for a Single Reply Post ---
 export function createReplyPostHTML(replyPost) {
     const postTimestamp = formatTimestamp(replyPost.timestamp);
     const avatarPath = replyPost.bot.avatarUrl || './avatars/default.png';
     const mediaHTML = getMediaHTML(replyPost.content.imageUrl);
     const shareButtonHTML = getShareButtonHTML(replyPost);
 
-    // --- NEW: Attribution for replies (if they ever have images) ---
-    // Note: This is future-proofing. Currently, only top-level posts have Pexels media.
+    // --- Attribution for replies ---
     const attributionHTML = (replyPost.content.source && replyPost.content.link && replyPost.content.imageUrl) ? `
         <div class="mt-1 text-xs text-gray-400">
             ${replyPost.content.imageUrl.includes('.mp4') ? 'Video' : 'Photo'} by
@@ -94,7 +93,6 @@ export function createReplyPostHTML(replyPost) {
             ${replyPost.content.source.toLowerCase() !== 'unsplash' ? ' on Pexels' : ''}
         </div>
     ` : '';
-    // --- END NEW LOGIC ---
 
     return `
         <div class="flex items-start space-x-3 pt-4 ml-8">
@@ -118,7 +116,7 @@ export function createReplyPostHTML(replyPost) {
     `;
 }
 
-// --- RUTH'S FIX 11/12: NEW FUNCTION TO RENDER RECIPES ---
+// --- NEW FUNCTION TO RENDER RECIPES ---
 function createRecipePostHTML(post) {
     const recipe = post.content.json;
     if (!recipe) return ''; // Safety check
@@ -152,8 +150,7 @@ function createRecipePostHTML(post) {
 // --- END NEW FUNCTION ---
 
 
-// --- RUTH'S FIX 11/12: This function is now a "router" ---
-// It checks the post.type and calls the correct renderer.
+// --- ROUTER FUNCTION ---
 export function createPostHTML(post, replies = []) {
   const postTimestamp = formatTimestamp(post.timestamp);
   const avatarPath = post.bot.avatarUrl || './avatars/default.png';
@@ -167,7 +164,7 @@ export function createPostHTML(post, replies = []) {
         </div>
     ` : '';
 
-  // --- NEW LOGIC: Check post type ---
+  // --- Check post type ---
   let contentHTML = '';
   if (post.type === 'recipe_post' && post.content.json) {
     // It's a recipe!
@@ -189,14 +186,14 @@ export function createPostHTML(post, replies = []) {
         ${attributionHTML}
     `;
   }
-  // --- END NEW LOGIC ---
 
   const shareButtonHTML = getShareButtonHTML(post);
   const repliesHTML = replies.map(createReplyPostHTML).join('');
 
+  // --- FIX IS BELOW: Changed ${avatarHTML} to ${avatarPath} in the fallback div ---
   const avatarHTML = avatarPath.startsWith('./')
     ? `<img class="w-12 h-12 rounded-full bg-gray-200" src="${avatarPath}" alt="${post.bot.name}">`
-    : `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-3xl">${avatarHTML}</div>`;
+    : `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-3xl">${avatarPath}</div>`;
 
   return `
     <div class="animate-fade-in border-b border-gray-200 pb-4 last:border-b-0">
@@ -222,7 +219,7 @@ export function createPostHTML(post, replies = []) {
   `;
 }
 
-// --- HTML Builder for News (Unchanged) ---
+// --- HTML Builder for News ---
 export function createNewsArticleHTML(post) {
   return `
     <a class="block animate-fade-in border-b border-gray-200 pb-4 last:border-b-0 hover:bg-gray-50 p-2 rounded-lg"
@@ -234,7 +231,7 @@ export function createNewsArticleHTML(post) {
   `;
 }
 
-// --- HTML Builder for Hottest Gift (Unchanged) ---
+// --- HTML Builder for Hottest Gift ---
 export function createHottestGiftHTML(post) {
   if (!post) {
     post = {
@@ -257,7 +254,7 @@ export function createHottestGiftHTML(post) {
   `;
 }
 
-// --- Snow Animation (Unchanged) ---
+// --- Snow Animation ---
 export function createSnowflakes(snowContainer) {
   if (!snowContainer) return;
   snowContainer.innerHTML = '';
@@ -272,7 +269,7 @@ export function createSnowflakes(snowContainer) {
   }
 }
 
-// --- SHARE POST FUNCTION (Unchanged) ---
+// --- SHARE POST FUNCTION ---
 window.sharePost = async function(event, postId, postText, botName) {
   // 1. Stop the link from trying to go anywhere
   event.preventDefault();
