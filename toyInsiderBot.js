@@ -6,24 +6,49 @@ const RssParser = require('rss-parser');
 const parser = new RssParser();
 require('dotenv').config();
 
-// --- BOT PERSONALITY ---
+// --- BOT PERSONALITY (UPDATED V1.6 - REAL TOYS ONLY) ---
 const BOT_HANDLE = "@ToyInsiderElf";
-const SYSTEM_INSTRUCTION = "You are a 'Toy Insider' elf... (rest of prompt is correct)";
-const REWRITE_PROMPT = (title, snippet) => `Rewrite this tech/gadget news item as a super exciting, kid-friendly "Hottest Gift" report. Make it sound like it's a new toy for Santa's list.
-Original Title: "${title}"
-Original Snippet: "${snippet}"
 
-Response MUST be ONLY a valid JSON object with the keys "toy_name" and "toy_description".
-{ "toy_name": "Your new, fun toy name", "toy_description": "Your 1-2 sentence kid-friendly description" }`;
+// New System Instruction: Strict Adherence to Reality
+const SYSTEM_INSTRUCTION = `
+    You are the Toy Insider Elf, the North Pole's expert on REAL toys and video games.
+    Your job is to spot the hottest REAL gifts for 2025 (Legos, Video Games, Dolls, Action Figures).
+    
+    CRITICAL RULES:
+    1. REALITY CHECK: You must ONLY write about the actual product described in the input. 
+    2. NO HALLUCINATIONS: Never invent "North Pole" toys or fake products. If it's not in the text, don't write about it.
+    3. TONE: Excited, expert, and helpful to parents and kids.
+    4. SAFETY: Do not recommend adult-only or dangerous items.
+`;
+
+// New Rewrite Prompt: Strict "Hype the Real Product" Logic
+const REWRITE_PROMPT = (title, snippet) => `
+    Task: Write a "Hottest Gift Alert" social media post based on this real news item.
+    
+    News Title: "${title}"
+    News Snippet: "${snippet}"
+    
+    INSTRUCTIONS:
+    1. Identify the specific toy, game, or brand mentioned (e.g. "Super Mario", "Barbie", "PlayStation").
+    2. Write a hype post explaining why this SPECIFIC REAL ITEM is on Santa's list this year.
+    3. If the news is about a business update (like "Company X reports profits"), ignore the boring math and hype the BRAND's toys instead (e.g., "The elves hear that [Brand] is making huge waves this year!").
+    
+    Response MUST be ONLY valid JSON:
+    { 
+      "toy_name": "The Real Product Name", 
+      "toy_description": "A 1-2 sentence description of why this real toy is awesome. Use emojis! 🎁🎮✨" 
+    }
+`;
+
 const POST_TYPE = "hottest_gift";
 // --- END PERSONALITY ---
 
+// --- UPDATED FEEDS: Removed CNET (too broad/boring), Added Gaming (Teen/Real) ---
 const TOY_FEEDS = [
-
-    'https://toybook.com/feed/',
-    'https://www.cnet.com/rss/gadgets/',
-    'https://www.thetoyinsider.com/feed/',
-    'https://toybook.com/feed/'
+    'https://www.thetoyinsider.com/feed/',   // Primary Source: Real Toys
+    'https://toybook.com/feed/',             // Industry News (Real Brands)
+    'https://www.nintendolife.com/feeds/news', // Replaces CNET: Real Games for Teens/Kids
+    'https://www.pushsquare.com/feeds/news'    // PlayStation News (Real "Cool" Tech for Teens)
 ];
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -34,18 +59,22 @@ const pool = new Pool({
 });
 
 async function fetchGadgetInspiration() {
-    log(BOT_HANDLE, "Fetching gadget news from RSS for inspiration...");
+    log(BOT_HANDLE, "Fetching real toy news from RSS...");
     const feedUrl = TOY_FEEDS[Math.floor(Math.random() * TOY_FEEDS.length)];
     try {
         const feed = await parser.parseURL(feedUrl);
-        const article = feed.items[Math.floor(Math.random() * 10)]; 
-        log(BOT_HANDLE, `Inspired by: ${article.title}`);
+        // Get a random item from the top 10
+        const article = feed.items[Math.floor(Math.random() * Math.min(feed.items.length, 10))]; 
+        
+        if (!article) throw new Error("Empty feed item");
+
+        log(BOT_HANDLE, `Inspired by Real News: ${article.title}`);
 
         return {
             title: article.title,
-            snippet: (article.contentSnippet || article.content || "No snippet").substring(0, 200),
+            snippet: (article.contentSnippet || article.content || "No snippet").substring(0, 300), // Increased snippet length for better context
             link: article.link,
-            source: feed.title || 'Gadget Source'
+            source: feed.title || 'Toy News Source'
         };
     } catch (error) {
         log(BOT_HANDLE, `Error fetching RSS feed: ${error.message}`, 'error');
@@ -54,13 +83,13 @@ async function fetchGadgetInspiration() {
 }
 
 async function generateAIContent(prompt, instruction) {
-    log(BOT_HANDLE, "Asking AI to rewrite gadget...");
+    log(BOT_HANDLE, "Asking AI to rewrite news...");
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     const requestBody = {
         contents: [{ parts: [{ text: prompt }] }],
         systemInstruction: { parts: [{ text: instruction }] },
         generationConfig: { 
-            temperature: 0.8, 
+            temperature: 0.7, // Lowered slightly to reduce creativity/hallucination
             maxOutputTokens: 1024,
             responseMimeType: "application/json"
         }
@@ -94,16 +123,14 @@ async function generateAIContent(prompt, instruction) {
 async function savePost(content, inspiration) {
     log(BOT_HANDLE, "Saving new post to DB...");
     
-    // --- THIS IS THE DEBUGGER ---
-    // This will print the exact object to your terminal
+    // --- DEBUGGER ---
     log(BOT_HANDLE, `Inspecting AI Response: ${JSON.stringify(content, null, 2)}`);
-    // --- END DEBUGGER ---
-
+    
     const client = await pool.connect();
     const echoId = `echo-${new Date().getTime()}-toy`;
     
     // Check for any possible key the AI might have used
-    const postTitle = content.toy_name || content.title || content.headline || inspiration.title; // Use original title as a fallback
+    const postTitle = content.toy_name || content.title || content.headline || inspiration.title; 
     const postText = content.toy_description || content.text || content.summary || "This new toy is the hottest gift of the season!";
 
     try {
@@ -140,4 +167,3 @@ async function runToyInsiderBot() {
 }
 
 module.exports = { runToyInsiderBot };
-
