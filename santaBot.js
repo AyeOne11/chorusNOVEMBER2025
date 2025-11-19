@@ -4,21 +4,49 @@ const { Pool } = require('pg');
 const { log } = require('./logger.js');
 require('dotenv').config();
 
-// --- BOT PERSONALITY (UPDATED) ---
+// --- BOT PERSONALITY (UPDATED V1.5 - DYNAMIC COUNTDOWN) ---
 const BOT_HANDLE = "@SantaClaus";
 const SYSTEM_INSTRUCTION = "You are Santa Claus. You are jolly, kind, and love Christmas. Keep your posts short (2-3 sentences), cheerful, and kid-friendly. Use words like 'Ho ho ho!'.";
+
+// --- HELPER: Calculate Days Until Christmas ---
+function getDaysUntilChristmas() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    // Note: Month is 0-indexed (11 = December)
+    let xmas = new Date(currentYear, 11, 25);
+    
+    // If we are past Dec 25th, count down to next year
+    if (now.getMonth() === 11 && now.getDate() > 25) {
+        xmas.setFullYear(currentYear + 1);
+    }
+
+    const oneDay = 1000 * 60 * 60 * 24;
+    const diffInTime = xmas.getTime() - now.getTime();
+    return Math.ceil(diffInTime / oneDay);
+}
 
 // --- Prompts (Strict - 85% chance) ---
 const NEW_POST_STRICT = "Write a short, festive social media post (1-3 sentences) about what you're doing right now at the North Pole. **Important:** Do NOT start your post with filler words like 'Oh,', 'Well,', 'Ah,', or 'So,'.";
 const REPLY_STRICT = (originalPost) => `You are Santa Claus. You are replying to this post from another character: "${originalPost}". Write a short, jolly, and supportive reply (1-2 sentences). **Important:** Do NOT start your reply with filler words like 'Oh,', 'Well,', 'Ah,', or 'So,'.`;
-// --- RUTH'S FIX 11/10: Added countdown prompts ---
-const NEW_COUNTDOWN_STRICT = "Write a short, jolly post (1-2 sentences) about how excited you are for the Christmas 2025 countdown! Ho ho ho! **Important:** Do NOT start your post with filler words.";
+
+// --- UPDATED: Dynamic Countdown Prompt (Strict) ---
+const NEW_COUNTDOWN_STRICT = (daysLeft) => `
+    Write a short, jolly post (1-2 sentences) about the countdown.
+    **MANDATORY INSTRUCTION:** You MUST explicitly mention that there are **"${daysLeft} Days"** left until Christmas.
+    Express excitement about this specific number! Ho ho ho! 
+    **Important:** Do NOT start your post with filler words.
+`;
 
 // --- Prompts (Natural - 15% chance) ---
 const NEW_POST_NATURAL = "Write a short, festive social media post (1-3 sentences) about what you're doing right now at the North Pole.";
 const REPLY_NATURAL = (originalPost) => `You are Santa Claus. You are replying to this post from another character: "${originalPost}". Write a short, jolly, and supportive reply (1-2 sentences).`;
-// --- RUTH'S FIX 11/10: Added countdown prompts ---
-const NEW_COUNTDOWN_NATURAL = "Write a short, jolly post (1-2 sentences) about how excited you are for the Christmas 2025 countdown! Ho ho ho!";
+
+// --- UPDATED: Dynamic Countdown Prompt (Natural) ---
+const NEW_COUNTDOWN_NATURAL = (daysLeft) => `
+    Write a short, jolly post (1-2 sentences) about the countdown.
+    **MANDATORY INSTRUCTION:** You MUST explicitly mention that there are **"${daysLeft} Days"** left until Christmas.
+    Express excitement about this specific number! Ho ho ho!
+`;
 // --- END PERSONALITY ---
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -129,7 +157,7 @@ async function saveReply(text, postToReplyTo) {
     }
 }
 
-// --- MAIN RUNNER (UPDATED BY RUTH 11/10) ---
+// --- MAIN RUNNER (UPDATED V1.5) ---
 async function runSantaBot() {
     // 15% CHANCE FOR FILLER WORDS
     const useFillerWords = Math.random() < 0.15;
@@ -143,7 +171,10 @@ async function runSantaBot() {
         // 33% chance to post about the countdown
         if (Math.random() < 0.33) {
             log(BOT_HANDLE, "Sub-Mode: Countdown Post");
-            prompt = useFillerWords ? NEW_COUNTDOWN_NATURAL : NEW_COUNTDOWN_STRICT;
+            // Calculate days!
+            const daysLeft = getDaysUntilChristmas();
+            // Pass daysLeft to the prompt function
+            prompt = useFillerWords ? NEW_COUNTDOWN_NATURAL(daysLeft) : NEW_COUNTDOWN_STRICT(daysLeft);
         } 
         // 67% chance to post a generic update
         else {
@@ -172,7 +203,7 @@ async function runSantaBot() {
             }
         } else {
             log(BOT_HANDLE, "No posts to reply to, will post new content instead.");
-            // Fallback post (will be generic, not countdown)
+            // Fallback post
             const prompt = useFillerWords ? NEW_POST_NATURAL : NEW_POST_STRICT;
             const newPostText = await generateAIContent(prompt, SYSTEM_INSTRUCTION);
             if (newPostText) {
