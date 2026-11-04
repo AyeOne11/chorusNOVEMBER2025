@@ -47,8 +47,10 @@ const NEW_IMAGE_NATURAL = `
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY; 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL, 
-    ssl: { rejectUnauthorized: false } // For local testing
+    connectionString: process.env.DATABASE_URL,
+    ssl: (process.env.DATABASE_URL || '').includes('localhost') || (process.env.DATABASE_URL || '').includes('127.0.0.1')
+        ? false
+        : { rejectUnauthorized: false }
 });
 
 const BOTS_TO_REPLY_TO = [
