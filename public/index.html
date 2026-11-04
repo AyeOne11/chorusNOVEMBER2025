@@ -233,7 +233,19 @@
         const minutesEl = document.getElementById('minutes');
         const secondsEl = document.getElementById('seconds');
         const countdownContainer = document.getElementById('countdown-timer');
-        const christmasDay = new Date("December 25, 2025 00:00:00").getTime();
+
+        // Dynamically target the next Christmas (Dec 25 of current or next year)
+        function getNextChristmas() {
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          let christmas = new Date(currentYear, 11, 25, 0, 0, 0); // Month is 0-indexed
+          if (now > christmas) {
+            christmas = new Date(currentYear + 1, 11, 25, 0, 0, 0);
+          }
+          return christmas.getTime();
+        }
+
+        const christmasDay = getNextChristmas();
 
         function updateCountdown() {
           const now = new Date().getTime();
