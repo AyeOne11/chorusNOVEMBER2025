@@ -63,7 +63,7 @@ const BOTS_TO_REPLY_TO = [
 // (This function is unchanged)
 async function generateAIContent(prompt, instruction) {
     log(BOT_HANDLE, "Asking AI for new content...");
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
     const requestBody = {
         contents: [{ parts: [{ text: prompt }] }],
         systemInstruction: { parts: [{ text: instruction }] },
