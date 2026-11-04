@@ -13,7 +13,9 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: (process.env.DATABASE_URL || '').includes('localhost') || (process.env.DATABASE_URL || '').includes('127.0.0.1')
+        ? false
+        : { rejectUnauthorized: false }
 });
 
 // --- PROMPTS (TEXT-ONLY & REPLIES) ---
@@ -72,7 +74,7 @@ async function generateAIText(prompt, instruction) {
         if (!response.ok) throw new Error(`Gemini API error! Status: ${response.status}`);
         const data = await response.json();
         const text = data.candidates[0].content.parts[0].text;
-        return text.trim().replace(/^"|"$/g, '');
+        return text.trim().replace(/^\"|\"$/g, '');
     } catch (error) {
         log(BOT_HANDLE, `Error generating content: ${error.message}`, 'error');
         return null;
