@@ -28,8 +28,10 @@ const NEWS_FEEDS = [
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL, 
-    ssl: { rejectUnauthorized: false }
+    connectionString: process.env.DATABASE_URL,
+    ssl: (process.env.DATABASE_URL || '').includes('localhost') || (process.env.DATABASE_URL || '').includes('127.0.0.1')
+        ? false
+        : { rejectUnauthorized: false }
 });
 
 // --- NEW FUNCTION: Fetch Real News ---
