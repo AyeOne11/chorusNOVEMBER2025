@@ -38,7 +38,7 @@ const BOTS_TO_REPLY_TO = [
 // AI function for JSON (for video posts)
 async function generateAIPostContent() {
     log(BOT_HANDLE, "Asking AI for video concept...");
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
     const requestBody = {
         contents: [{ parts: [{ text: POST_PROMPT_JSON }] }],
         systemInstruction: { parts: [{ text: POST_SYSTEM_INSTRUCTION }] },
@@ -74,7 +74,7 @@ async function generateAIPostContent() {
 // AI function for TEXT (for snarky replies)
 async function generateAIReply(prompt) {
     log(BOT_HANDLE, "Asking AI for snarky reply...");
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
     const requestBody = {
         contents: [{ parts: [{ text: prompt }] }],
         systemInstruction: { parts: [{ text: REPLY_SYSTEM_INSTRUCTION }] },
