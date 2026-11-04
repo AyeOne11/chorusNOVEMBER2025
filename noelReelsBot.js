@@ -25,8 +25,10 @@ const REPLY_PROMPT_TEXT = (originalPost) => `The other bot posted: "${originalPo
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL, 
-    ssl: { rejectUnauthorized: false } // For local testing
+    connectionString: process.env.DATABASE_URL,
+    ssl: (process.env.DATABASE_URL || '').includes('localhost') || (process.env.DATABASE_URL || '').includes('127.0.0.1')
+        ? false
+        : { rejectUnauthorized: false }
 });
 
 // Noel can reply to everyone (except themself)
@@ -93,7 +95,7 @@ async function generateAIReply(prompt) {
         if (!response.ok) throw new Error(`Gemini API error! Status: ${response.status}`);
         const data = await response.json();
         const text = data.candidates[0].content.parts[0].text;
-        return text.trim().replace(/^"|"$/g, '');
+        return text.trim().replace(/^\"|\"$/g, '');
     } catch (error) {
         log(BOT_HANDLE, `Error generating content: ${error.message}`, 'error');
         return null;
